@@ -8,7 +8,7 @@ extends Room
 func _ready() -> void:
 	super._ready()
 	# Remove this call once you've painted your own floor in the editor.
-	_paint_tiles()
+	#_paint_tiles()
 
 func _paint_tiles() -> void:
 	var tmap : TileMapLayer = $TileMapLayer

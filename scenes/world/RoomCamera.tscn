@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+; Place one instance of this scene in your World / Level scene.
+; It will find players automatically via the "players" group and
+; read the current room's bounds from RoomManager.current_room.
+;
+; You do NOT need to set next_room or prev_room here — the camera
+; reads those from the active Room and updates itself on every transition.
+
+[ext_resource type="Script" path="res://scenes/world/RoomCamera.gd" id="1_cam"]
+
+[node name="RoomCamera" type="Camera2D"]
+zoom = Vector2(3, 3)
+script = ExtResource("1_cam")
+
+; FadeLayer renders on top of everything else (layer = 10).
+; A higher layer number = drawn later = on top.
+[node name="FadeLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+; FadeRect is the full-screen black overlay used for transitions.
+; anchor_right = 1 and anchor_bottom = 1 make it stretch to fill the
+; viewport at any resolution.  The script also calls
+; set_anchors_and_offsets_preset(PRESET_FULL_RECT) on _ready() as a
+; belt-and-suspenders guarantee.
+; mouse_filter = 2 (MOUSE_FILTER_IGNORE) so the overlay never blocks clicks.
+[node name="FadeRect" type="ColorRect" parent="FadeLayer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0)
+mouse_filter = 2

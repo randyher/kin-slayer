@@ -1,12 +1,20 @@
 [gd_scene format=3 uid="uid://dp572jo7tdjvb"]
 
 [ext_resource type="Script" uid="uid://bmp6v1w1tp5tm" path="res://scenes/entities/players/Player.gd" id="1_k3m7n"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch01.png" id="cr1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch02.png" id="cr2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch03.png" id="cr3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch04.png" id="cr4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch05.png" id="cr5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Crouch/Crouch06.png" id="cr6"]
+[ext_resource type="Texture2D" uid="uid://dyq23mgif4btb" path="res://assets/sprites/players/p1/Crouch/Crouch01.png" id="cr1"]
+[ext_resource type="Texture2D" uid="uid://c6yrmv1men0yh" path="res://assets/sprites/players/p1/Crouch/Crouch02.png" id="cr2"]
+[ext_resource type="Texture2D" uid="uid://83twc8y1a58j" path="res://assets/sprites/players/p1/Crouch/Crouch03.png" id="cr3"]
+[ext_resource type="Texture2D" uid="uid://xyhwmggifjmy" path="res://assets/sprites/players/p1/Crouch/Crouch04.png" id="cr4"]
+[ext_resource type="Texture2D" uid="uid://clc3g58om0jb7" path="res://assets/sprites/players/p1/Crouch/Crouch05.png" id="cr5"]
+[ext_resource type="Texture2D" uid="uid://bvymwon13ag4j" path="res://assets/sprites/players/p1/Crouch/Crouch06.png" id="cr6"]
+[ext_resource type="Texture2D" uid="uid://bo2pj35sdgrdy" path="res://assets/sprites/players/p1/Crawl/Crawl01.png" id="cw1"]
+[ext_resource type="Texture2D" uid="uid://bpx1s5wau3eth" path="res://assets/sprites/players/p1/Crawl/Crawl02.png" id="cw2"]
+[ext_resource type="Texture2D" uid="uid://bwrfkm5c1vuad" path="res://assets/sprites/players/p1/Crawl/Crawl03.png" id="cw3"]
+[ext_resource type="Texture2D" uid="uid://wkfgs3xdbjby" path="res://assets/sprites/players/p1/Crawl/Crawl04.png" id="cw4"]
+[ext_resource type="Texture2D" uid="uid://bsyvavngqhfsg" path="res://assets/sprites/players/p1/Crawl/Crawl05.png" id="cw5"]
+[ext_resource type="Texture2D" uid="uid://uakksnafgq3q" path="res://assets/sprites/players/p1/Crawl/Crawl06.png" id="cw6"]
+[ext_resource type="Texture2D" uid="uid://dwgcf1gouuuj3" path="res://assets/sprites/players/p1/Crawl/Crawl07.png" id="cw7"]
+[ext_resource type="Texture2D" uid="uid://vxrk1pspa7jq" path="res://assets/sprites/players/p1/Crawl/Crawl08.png" id="cw8"]
 [ext_resource type="Texture2D" uid="uid://dp76nrvf6ejok" path="res://assets/sprites/players/p1/Dash/Dash01.png" id="d1"]
 [ext_resource type="Texture2D" uid="uid://dw6m6ktue6dgs" path="res://assets/sprites/players/p1/Dash/Dash02.png" id="d2"]
 [ext_resource type="Texture2D" uid="uid://ci42p53ygf33w" path="res://assets/sprites/players/p1/Dash/Dash03.png" id="d3"]
@@ -88,6 +96,35 @@
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_anim"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("cw1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cw8")
+}],
+"loop": true,
+"name": &"Crawl",
+"speed": 8.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("cr1")

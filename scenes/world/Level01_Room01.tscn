@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://b4rnxbhjch0aa"]
+
+[ext_resource type="PackedScene" path="res://scenes/world/Room.tscn" id="1_room_base"]
+[ext_resource type="Texture2D" uid="uid://c1g7yhkjvmhqc" path="res://assets/tilesets/Bricks.png" id="2_bricks"]
+[ext_resource type="Texture2D" uid="uid://cat13vrljqjqa" path="res://assets/tilesets/Walls.png" id="3_walls"]
+[ext_resource type="Script" uid="uid://c8btyx3yyqoqx" path="res://scenes/world/Level01_Room01.gd" id="4_script"]
+
+[sub_resource type="TileSetAtlasSource" id="AtlasSource_bricks"]
+texture = ExtResource("2_bricks")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="AtlasSource_walls"]
+texture = ExtResource("3_walls")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSet" id="TileSet_room01"]
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("AtlasSource_bricks")
+sources/1 = SubResource("AtlasSource_walls")
+
+[sub_resource type="RectangleShape2D" id="Shape_bounds"]
+size = Vector2(1152, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit"]
+size = Vector2(16, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_h"]
+size = Vector2(1152, 16)
+
+[node name="Room" unique_id=43142681 instance=ExtResource("1_room_base")]
+script = ExtResource("4_script")
+
+[node name="TileMapLayer" parent="." index="0"]
+scale = Vector2(2, 2)
+tile_set = SubResource("TileSet_room01")
+
+[node name="RoomBounds" parent="." index="1"]
+position = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="RoomBounds" index="0"]
+shape = SubResource("Shape_bounds")
+
+[node name="ExitRight" parent="." index="2"]
+position = Vector2(576, 0)
+
+[node name="CollisionShape2D" parent="ExitRight" index="0"]
+shape = SubResource("Shape_exit")
+
+[node name="ExitLeft" parent="." index="3"]
+position = Vector2(-576, 0)
+
+[node name="CollisionShape2D" parent="ExitLeft" index="0"]
+shape = SubResource("Shape_exit")
+
+[node name="ExitTop" parent="." index="6"]
+position = Vector2(0, -324)
+
+[node name="CollisionShape2D" parent="ExitTop" index="0"]
+shape = SubResource("Shape_exit_h")
+
+[node name="ExitBottom" parent="." index="7"]
+position = Vector2(0, 324)
+
+[node name="CollisionShape2D" parent="ExitBottom" index="0"]
+shape = SubResource("Shape_exit_h")
+
+[node name="SpawnLeft" parent="." index="4"]
+position = Vector2(-400, 200)
+
+[node name="SpawnRight" parent="." index="5"]
+position = Vector2(-300, 200)
+
+[node name="SpawnTop" parent="." index="8"]
+position = Vector2(0, -280)
+
+[node name="SpawnBottom" parent="." index="9"]
+position = Vector2(0, 280)

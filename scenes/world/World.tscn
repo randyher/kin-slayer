@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+; Root scene for the game.
+; Contains the persistent camera and both players.
+; Rooms are loaded / swapped at runtime by RoomManager — they are NOT
+; children of this scene in the file; they get added as children of the
+; "World" node when the game runs.
+
+[ext_resource type="PackedScene" uid="uid://dp572jo7tdjvb" path="res://scenes/entities/players/Player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
+
+[node name="World" type="Node2D"]
+
+[node name="Background" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Bg" type="ColorRect" parent="Background"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.08, 0.12, 1)
+mouse_filter = 2
+
+; RoomCamera tracks both players and handles room-transition fades.
+; next_room / prev_room are set automatically on each room load —
+; you do not need to configure them here.
+[node name="RoomCamera" parent="." instance=ExtResource("2_camera")]
+
+; Player 1 — Arrow Keys + Enter + Right Shift (see project input map)
+[node name="Player1" parent="." instance=ExtResource("1_player")]
+position = Vector2(200, 300)
+player_id = 1
+
+; Player 2 — WASD + Space + Left Shift
+; Blue-grey tint so the two players are visually distinct.
+[node name="Player2" parent="." instance=ExtResource("1_player")]
+position = Vector2(300, 300)
+player_id = 2
+player_color = Color(0.3, 0.3, 0.45, 1)

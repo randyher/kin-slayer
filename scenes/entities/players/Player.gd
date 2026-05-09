@@ -58,6 +58,9 @@ extends CharacterBody2D
 ## Allow a second jump while airborne. Off by default — flip to true per-character to enable.
 @export var double_jump_enabled: bool = false
 
+## Horizontal speed while crawling. Slower than run — player is prone.
+@export_range(20.0, 200.0, 5.0, "suffix:px/s") var crawl_speed: float = 80.0
+
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
 @export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 400.0
@@ -75,7 +78,7 @@ extends CharacterBody2D
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -121,6 +124,7 @@ var _has_double_jumped: bool = false
 # READY
 # ---------------------------------------------------------------------------
 func _ready() -> void:
+	add_to_group("players")  # lets RoomManager and RoomCamera find all players
 	modulate = player_color  # apply co-op tint to the entire node (sprite + children)
 	_sprite.play("Idle")
 	# Listen for non-looping animations finishing so we can hand off correctly.
@@ -148,6 +152,8 @@ func _physics_process(delta: float) -> void:
 			_process_ground(input, delta)
 		State.DUCK:
 			_process_duck(input, delta)
+		State.CRAWL:
+			_process_crawl(input, delta)
 		State.JUMP, State.FALL:
 			_process_air(input, delta)
 		State.DASH:
@@ -179,6 +185,7 @@ func _physics_process(delta: float) -> void:
 # Also stores jump / dash pressed flags read from the correct player's keys.
 # ---------------------------------------------------------------------------
 ## Cached this-frame input flags — set inside _get_input(), read elsewhere.
+var _input_x: float = 0.0
 var _jump_pressed: bool = false
 var _jump_held: bool = false
 var _dash_pressed: bool = false
@@ -204,6 +211,7 @@ func _get_input() -> Vector2:
 		_dash_pressed = Input.is_action_just_pressed("p2_dash")
 		_down_held    = Input.is_action_pressed("p2_down")
 
+	_input_x = dir.x
 	return dir
 
 # ---------------------------------------------------------------------------
@@ -244,6 +252,17 @@ func _process_duck(input: Vector2, _delta: float) -> void:
 		_start_jump()
 	elif not _down_held:
 		_set_state(State.IDLE)
+
+# ---------------------------------------------------------------------------
+# CRAWL MOVEMENT
+# Player is prone and moving horizontally while holding down + a direction.
+# Slower than running. Releasing down or direction exits back to duck/idle.
+# ---------------------------------------------------------------------------
+func _process_crawl(input: Vector2, delta: float) -> void:
+	velocity.x = move_toward(velocity.x, input.x * crawl_speed, acceleration * delta)
+	velocity.y += _base_gravity * delta
+	if _jump_pressed or _jump_buffer_timer > 0.0:
+		_start_jump()
 
 # ---------------------------------------------------------------------------
 # AIR MOVEMENT
@@ -407,7 +426,9 @@ func _update_state() -> void:
 		return
 
 	if is_on_floor():
-		if _down_held:
+		if _down_held and _input_x != 0.0:
+			_set_state(State.CRAWL)
+		elif _down_held:
 			_set_state(State.DUCK)
 		elif abs(velocity.x) > 1.0 and not is_on_wall():
 			_set_state(State.RUN)
@@ -439,7 +460,8 @@ func _set_state(new_state: State) -> void:
 	match state:
 		State.IDLE: _sprite.play("Idle")
 		State.RUN:  _sprite.play("Run")
-		State.DUCK: _sprite.play("Crouch")
+		State.DUCK:  _sprite.play("Crouch")
+		State.CRAWL: _sprite.play("Crawl")
 		State.JUMP: _sprite.play("JumpRise")
 		State.FALL: _sprite.play("JumpFall")
 		State.DASH: _sprite.play("DashLoop")

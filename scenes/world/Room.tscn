@@ -1,0 +1,112 @@
+[gd_scene format=3]
+
+; Base template for every room in the game.
+; To create a new room:
+;   1. Duplicate this file (right-click in the FileSystem dock → Duplicate)
+;   2. Open the duplicate, assign next_room / prev_room in the Inspector
+;   3. Resize the CollisionShape2D inside RoomBounds to match your room size
+;   4. Move ExitRight to the right edge and ExitLeft to the left edge
+;   5. Paint tiles on TileMapLayer
+
+[ext_resource type="Script" path="res://scenes/world/Room.gd" id="1_room"]
+
+; --- Collision shapes ---
+; RoomBounds: default 320 × 180 px room, top-left at world origin (0, 0).
+; Horizontal exits: 16 px wide strips at the left and right edges.
+; Vertical exits:   16 px tall strips at the top and bottom edges.
+; Adjust sizes and positions after duplicating this template.
+
+[sub_resource type="RectangleShape2D" id="Shape_bounds"]
+size = Vector2(320, 180)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_right"]
+size = Vector2(16, 180)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_left"]
+size = Vector2(16, 180)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_top"]
+size = Vector2(320, 16)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_bottom"]
+size = Vector2(320, 16)
+
+; ---------------------------------------------------------------------------
+; NODE TREE
+; ---------------------------------------------------------------------------
+
+[node name="Room" type="Node2D"]
+script = ExtResource("1_room")
+
+; TileMapLayer — paint your platforms here.
+; Assign a TileSet resource in the Inspector.
+[node name="TileMapLayer" type="TileMapLayer" parent="."]
+
+; RoomBounds — defines the camera lock area for this room.
+; Not a physics collider — monitoring and monitorable are both off.
+; Only used by Room.get_bounds_rect() to give the camera a clamping rect.
+[node name="RoomBounds" type="Area2D" parent="."]
+position = Vector2(160, 90)
+monitoring = false
+monitorable = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RoomBounds"]
+shape = SubResource("Shape_bounds")
+
+; ExitRight — players walk into this to trigger a transition to the right.
+; collision_mask = 1 so it detects CharacterBody2D nodes on physics layer 1.
+[node name="ExitRight" type="Area2D" parent="."]
+position = Vector2(312, 90)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitRight"]
+shape = SubResource("Shape_exit_right")
+
+; ExitLeft — players walk into this to trigger a transition to the left.
+[node name="ExitLeft" type="Area2D" parent="."]
+position = Vector2(8, 90)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitLeft"]
+shape = SubResource("Shape_exit_left")
+
+; ExitTop — players jump through this to transition upward.
+[node name="ExitTop" type="Area2D" parent="."]
+position = Vector2(160, 8)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitTop"]
+shape = SubResource("Shape_exit_top")
+
+; ExitBottom — players fall through this to transition downward.
+[node name="ExitBottom" type="Area2D" parent="."]
+position = Vector2(160, 172)
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitBottom"]
+shape = SubResource("Shape_exit_bottom")
+
+; SpawnLeft — where players appear when they enter this room from the LEFT.
+; (i.e. they came through ExitRight of the room to the left.)
+[node name="SpawnLeft" type="Marker2D" parent="."]
+position = Vector2(32, 140)
+
+; SpawnRight — where players appear when they enter this room from the RIGHT.
+[node name="SpawnRight" type="Marker2D" parent="."]
+position = Vector2(288, 140)
+
+; SpawnTop — where players appear when they enter this room from ABOVE.
+; (i.e. they came through ExitBottom of the room above.)
+[node name="SpawnTop" type="Marker2D" parent="."]
+position = Vector2(160, 32)
+
+; SpawnBottom — where players appear when they enter this room from BELOW.
+; (i.e. they came through ExitTop of the room below.)
+[node name="SpawnBottom" type="Marker2D" parent="."]
+position = Vector2(160, 148)

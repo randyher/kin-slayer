@@ -1,0 +1,78 @@
+[gd_scene format=3 uid="uid://sokk0gqjluu"]
+
+[ext_resource type="Texture2D" uid="uid://c1g7yhkjvmhqc" path="res://assets/tilesets/Bricks.png" id="bricks_tex"]
+[ext_resource type="PackedScene" uid="uid://dp572jo7tdjvb" path="res://scenes/entities/players/Player.tscn" id="player_scene"]
+[ext_resource type="Script" uid="uid://lhrbijh5j3gh" path="res://scenes/world/Level01.gd" id="scr_level"]
+[ext_resource type="Texture2D" uid="uid://cat13vrljqjqa" path="res://assets/tilesets/Walls.png" id="walls_tex"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bricks"]
+texture = ExtResource("bricks_tex")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+6:4/0 = 0
+6:3/0 = 0
+6:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+7:3/0 = 0
+7:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+7:4/0 = 0
+8:4/0 = 0
+8:3/0 = 0
+8:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+9:3/0 = 0
+9:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+9:4/0 = 0
+10:4/0 = 0
+11:4/0 = 0
+12:4/0 = 0
+12:3/0 = 0
+12:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+11:3/0 = 0
+11:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+10:3/0 = 0
+10:3/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 2.374134, -8, 1.978445, 8, 1.978445, 8, 8, 1.7806015, 8, -8, 8)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_walls"]
+texture = ExtResource("walls_tex")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+6:10/0 = 0
+6:11/0 = 0
+2:11/0 = 0
+2:11/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+2:10/0 = 0
+2:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSet" id="TileSet_main"]
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_bricks")
+sources/1 = SubResource("TileSetAtlasSource_walls")
+
+[node name="Level01" type="Node2D" unique_id=2043753183]
+script = ExtResource("scr_level")
+
+[node name="Background" type="CanvasLayer" parent="." unique_id=2033758271]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="Background" unique_id=1018859597]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.75, 0.75, 0.75, 1)
+
+[node name="TileMap" type="TileMapLayer" parent="." unique_id=894411052]
+scale = Vector2(2, 2)
+tile_set = SubResource("TileSet_main")
+
+[node name="Player1" parent="." unique_id=362626147 instance=ExtResource("player_scene")]
+position = Vector2(300, 290)
+
+[node name="Player2" parent="." unique_id=812700250 instance=ExtResource("player_scene")]
+position = Vector2(263, 292)
+player_id = 2
+player_color = Color(0.3, 0.3, 0.45, 1)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=412775380]
+position = Vector2(500, 300)
+zoom = Vector2(1.5, 1.5)

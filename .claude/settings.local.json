@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for folder:*)",
+      "Bash(do)",
+      "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/$folder\" \"/Users/randyherasme/kin-slayer/assets/sprites/players/p1/$folder\")",
+      "Bash(done)",
+      "Bash(cp:*)",
+      "Bash(python3:*)",
+      "Bash(sips:*)",
+      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/NeonNightCityTileset/Sprites/Tilesets/Bricks.png\" \"/Users/randyherasme/kin-slayer/assets/tilesets/Bricks.png\")",
+      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/NeonNightCityTileset/Sprites/Tilesets/Walls.png\" \"/Users/randyherasme/kin-slayer/assets/tilesets/Walls.png\")",
+      "Bash(git *)"
+    ]
+  }
+}

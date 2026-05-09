@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://w7drsw4ax0ed"]
+
+[ext_resource type="PackedScene" path="res://scenes/entities/players/Player.tscn" id="1_p8xyn"]
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_t6v3z"]
+
+[node name="TestWorld" type="Node2D" unique_id=898463724]
+
+[node name="Background" type="CanvasLayer" parent="." unique_id=14395035]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="Background" unique_id=425293763]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.13, 0.13, 0.13, 1)
+
+[node name="Floor" type="StaticBody2D" parent="." unique_id=1749663200]
+position = Vector2(0, 400)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=2108362050]
+shape = SubResource("WorldBoundaryShape2D_t6v3z")
+
+[node name="Player1" parent="." unique_id=1319116845 instance=ExtResource("1_p8xyn")]
+position = Vector2(300, 300)
+
+[node name="Player2" parent="." unique_id=76781901 instance=ExtResource("1_p8xyn")]
+position = Vector2(500, 300)
+player_id = 2
+player_color = Color(0.3, 0.3, 0.45, 1)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=971089792]
+position = Vector2(400, 350)

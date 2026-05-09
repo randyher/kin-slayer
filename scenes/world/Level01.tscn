@@ -75,4 +75,4 @@ player_color = Color(0.3, 0.3, 0.45, 1)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=412775380]
 position = Vector2(500, 300)
-zoom = Vector2(1.5, 1.5)
+zoom = Vector2(3, 3)

@@ -409,7 +409,7 @@ func _update_state() -> void:
 	if is_on_floor():
 		if _down_held:
 			_set_state(State.DUCK)
-		elif abs(velocity.x) > 1.0:
+		elif abs(velocity.x) > 1.0 and not is_on_wall():
 			_set_state(State.RUN)
 		else:
 			_set_state(State.IDLE)

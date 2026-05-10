@@ -11,6 +11,14 @@ extends CharacterBody2D
 ## current = new stamina value,  maximum = stamina_max export.
 signal stamina_changed(current: float, maximum: float)
 
+## Fired whenever HP changes (damage or heal).
+## Connect to the HUD to update the heart display.
+signal hp_changed(current: int, maximum: int)
+
+## Fired when current_hp reaches 0.
+## Death behaviour is not yet implemented — this signal is the hook for it.
+signal player_died
+
 # ---------------------------------------------------------------------------
 # PLAYER IDENTITY
 # ---------------------------------------------------------------------------
@@ -64,6 +72,12 @@ signal stamina_changed(current: float, maximum: float)
 
 ## Horizontal speed while crawling. Slower than run — player is prone.
 @export_range(20.0, 200.0, 5.0, "suffix:px/s") var crawl_speed: float = 80.0
+
+@export_group("Health")
+## Maximum number of hit points. Also sets how many hearts the HUD shows.
+@export_range(1, 10, 1) var max_hp: int = 3
+## Starting HP. Clamped to max_hp in _ready() so it can never exceed it.
+@export_range(0, 10, 1) var current_hp: int = 3
 
 @export_group("Wall")
 ## Maximum fall speed while sliding down a wall. Lower = stickier.
@@ -196,11 +210,15 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 # READY
 # ---------------------------------------------------------------------------
 func _ready() -> void:
-	add_to_group("players")  # lets RoomManager and RoomCamera find all players
+	add_to_group("players")  # lets RoomManager, RoomCamera, and HUD find all players
 	modulate = player_color  # apply co-op tint to the entire node (sprite + children)
 	_sprite.play("Idle")
 	_sprite.animation_finished.connect(_on_animation_finished)
 	_stamina = stamina_max   # start every session with a full stamina bar
+	# Clamp current_hp in case the Inspector value was set above max_hp,
+	# then emit so the HUD initialises correctly the moment it connects.
+	current_hp = clampi(current_hp, 0, max_hp)
+	hp_changed.emit(current_hp, max_hp)
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -808,3 +826,21 @@ func _on_animation_finished() -> void:
 		global_position.y -= 39.0
 		global_position.x += float(_facing_direction) * 14.5
 		_set_state(State.IDLE)
+
+# ---------------------------------------------------------------------------
+# HP — PUBLIC API
+# Call take_damage() and heal() from anywhere; they handle all clamping
+# and signal emission so callers never touch current_hp directly.
+# ---------------------------------------------------------------------------
+
+## Reduce HP by amount.  Clamps to 0 and emits player_died if HP reaches 0.
+func take_damage(amount: int) -> void:
+	current_hp = clampi(current_hp - amount, 0, max_hp)
+	hp_changed.emit(current_hp, max_hp)
+	if current_hp <= 0:
+		player_died.emit()   # death logic not yet implemented — hook here later
+
+## Restore HP by amount.  Clamps to max_hp.
+func heal(amount: int) -> void:
+	current_hp = clampi(current_hp + amount, 0, max_hp)
+	hp_changed.emit(current_hp, max_hp)

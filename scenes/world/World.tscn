@@ -8,6 +8,7 @@
 
 [ext_resource type="PackedScene" uid="uid://dp572jo7tdjvb" path="res://scenes/entities/players/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 
 [node name="World" type="Node2D"]
 
@@ -36,3 +37,8 @@ player_id = 1
 position = Vector2(300, 300)
 player_id = 2
 player_color = Color(0.3, 0.3, 0.45, 1)
+
+; HUD — discovers players automatically via the "players" group.
+; Player nodes add themselves to that group in their own _ready(),
+; so no manual signal wiring is needed here.
+[node name="HUD" parent="." instance=ExtResource("3_hud")]

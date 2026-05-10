@@ -7,6 +7,10 @@
 class_name Player
 extends CharacterBody2D
 
+## Fired whenever stamina changes — connect this to the HUD when it's built.
+## current = new stamina value,  maximum = stamina_max export.
+signal stamina_changed(current: float, maximum: float)
+
 # ---------------------------------------------------------------------------
 # PLAYER IDENTITY
 # ---------------------------------------------------------------------------
@@ -74,6 +78,27 @@ extends CharacterBody2D
 ## Whether wall jumping resets the air dash counter.
 @export var wall_jump_refreshes_dash: bool = false
 
+@export_group("Stamina")
+## Total stamina pool. Drains while climbing or hanging; refills when resting.
+@export_range(0.0, 200.0, 5.0) var stamina_max: float = 100.0
+## Stamina drained per second while actively climbing a wall.
+@export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_wall_climb: float = 20.0
+## Stamina drained per second during the LedgeHang entry animation.
+@export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_ledge_hang: float = 8.0
+## Stamina drained per second while idle-hanging on a ledge (LedgeHangIdle loop).
+## Only applies when ledge_hang_idle_drains_stamina is true.
+@export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_ledge_hang_idle: float = 4.0
+## Stamina recovered per second while not gripping.
+@export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_regen_rate: float = 15.0
+## Seconds of rest before stamina starts recovering after the last drain.
+@export_range(0.0, 3.0, 0.1, "suffix:s") var stamina_regen_delay: float = 1.0
+## Max upward speed when pressing jump while gripping a wall.
+@export_range(0.0, 300.0, 5.0, "suffix:px/s") var wall_climb_speed: float = 120.0
+## Single toggle that disables BOTH wall climbing AND automatic ledge grabbing.
+@export var wall_climb_enabled: bool = true
+## If false, LedgeHangIdle does not drain stamina — player can hang indefinitely.
+@export var ledge_hang_idle_drains_stamina: bool = true
+
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
 @export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 380.0
@@ -91,7 +116,7 @@ extends CharacterBody2D
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -106,7 +131,10 @@ var state: State = State.IDLE
 var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
 ## Reference to the AnimatedSprite2D child — resolved automatically at scene ready.
-@onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var _sprite             : AnimatedSprite2D = $AnimatedSprite2D
+## Raycasts for automatic ledge detection — see PART 4 implementation notes.
+@onready var _ledge_check_upper  : RayCast2D        = $LedgeCheckUpper
+@onready var _ledge_check_lower  : RayCast2D        = $LedgeCheckLower
 
 ## Which horizontal direction the player is facing: +1 = right, -1 = left.
 ## Used when dashing with no directional input (dash "forward").
@@ -133,6 +161,24 @@ var _was_on_floor: bool = false
 # Double jump — consumed the frame it fires, restored when the player lands.
 var _has_double_jumped: bool = false
 
+# ---------------------------------------------------------------------------
+# STAMINA
+# ---------------------------------------------------------------------------
+# Current stamina. Initialised to stamina_max in _ready().
+var _stamina: float = 0.0
+
+# Countdown before stamina starts regenerating after the last drain event.
+var _stamina_regen_timer: float = 0.0
+
+# Set true when stamina reaches 0. Blocks all gripping until stamina
+# recovers to at least 25 % of stamina_max, preventing instant re-grab loops.
+var _stamina_exhausted: bool = false
+
+# World position recorded when LEDGE_HANG is entered.
+# The player is locked here (velocity = 0) during the hang, and it is used
+# to calculate the nudge-up offset when LedgeClimb finishes.
+var _ledge_hang_position: Vector2 = Vector2.ZERO
+
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
 # Mirrors _coyote_timer exactly, but for walls instead of floors.
@@ -150,8 +196,8 @@ func _ready() -> void:
 	add_to_group("players")  # lets RoomManager and RoomCamera find all players
 	modulate = player_color  # apply co-op tint to the entire node (sprite + children)
 	_sprite.play("Idle")
-	# Listen for non-looping animations finishing so we can hand off correctly.
 	_sprite.animation_finished.connect(_on_animation_finished)
+	_stamina = stamina_max   # start every session with a full stamina bar
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -166,8 +212,9 @@ func _physics_process(delta: float) -> void:
 	# the same value as _was_on_floor since is_on_floor() hasn't updated yet.
 	var floor_last_frame := _was_on_floor
 
-	# --- Tick all timers down by the elapsed time this frame ---
+	# --- Tick all timers and stamina ---
 	_tick_timers(delta)
+	_tick_stamina(delta)
 
 	# --- Run the logic for whichever state is currently active ---
 	match state:
@@ -181,6 +228,12 @@ func _physics_process(delta: float) -> void:
 			_process_air(input, delta)
 		State.WALL_SLIDE:
 			_process_wall_slide(input, delta)
+		State.WALL_CLIMB:
+			_process_wall_climb(input, delta)
+		State.LEDGE_HANG:
+			_process_ledge_hang(input, delta)
+		State.LEDGE_CLIMB:
+			_process_ledge_climb(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
 
@@ -195,6 +248,16 @@ func _physics_process(delta: float) -> void:
 	if input.x != 0:
 		_facing_direction = int(sign(input.x))
 	_sprite.flip_h = _facing_direction == -1
+
+	# --- Update ledge detection raycasts ---
+	# Always cast toward the direction the player is currently facing.
+	# force_raycast_update() re-evaluates the ray immediately so that
+	# _update_state() reads fresh results on this same frame.
+	var cast_x := float(_facing_direction) * 12.0
+	_ledge_check_upper.target_position.x = cast_x
+	_ledge_check_lower.target_position.x = cast_x
+	_ledge_check_upper.force_raycast_update()
+	_ledge_check_lower.force_raycast_update()
 
 	# --- Determine what state we should be in next frame ---
 	_update_state()
@@ -215,26 +278,29 @@ var _jump_pressed: bool = false
 var _jump_held: bool = false
 var _dash_pressed: bool = false
 var _down_held: bool = false
+## Grip button — universal "maintain contact" action (p1_grip / p2_grip).
+## Used for wall climbing, ledge hanging, and future interactions.
+var _grip_held: bool = false
 
 func _get_input() -> Vector2:
 	var dir := Vector2.ZERO
 
 	if player_id == 1:
-		# --- Player 1: WASD + Space + Left Shift ---
-		if Input.is_action_pressed("p1_right"):  dir.x += 1
-		if Input.is_action_pressed("p1_left"):   dir.x -= 1
+		if Input.is_action_pressed("p1_right"):      dir.x += 1
+		if Input.is_action_pressed("p1_left"):       dir.x -= 1
 		_jump_pressed = Input.is_action_just_pressed("p1_jump")
 		_jump_held    = Input.is_action_pressed("p1_jump")
 		_dash_pressed = Input.is_action_just_pressed("p1_dash")
 		_down_held    = Input.is_action_pressed("p1_down")
+		_grip_held    = Input.is_action_pressed("p1_grip")
 	else:
-		# --- Player 2: Arrow Keys + Enter + Right Shift ---
-		if Input.is_action_pressed("p2_right"):  dir.x += 1
-		if Input.is_action_pressed("p2_left"):   dir.x -= 1
+		if Input.is_action_pressed("p2_right"):      dir.x += 1
+		if Input.is_action_pressed("p2_left"):       dir.x -= 1
 		_jump_pressed = Input.is_action_just_pressed("p2_jump")
 		_jump_held    = Input.is_action_pressed("p2_jump")
 		_dash_pressed = Input.is_action_just_pressed("p2_dash")
 		_down_held    = Input.is_action_pressed("p2_down")
+		_grip_held    = Input.is_action_pressed("p2_grip")
 
 	_input_x = dir.x
 	return dir
@@ -309,6 +375,113 @@ func _process_wall_slide(_input: Vector2, delta: float) -> void:
 
 	if _jump_pressed:
 		_start_wall_jump()
+
+# ---------------------------------------------------------------------------
+# WALL CLIMB
+# Player grips the wall (grip button held) and can move up or down.
+# Hold jump to climb up, hold down to descend, neither to cling still.
+# Stamina drains per second; hitting 0 forces an immediate drop with knockback.
+# ---------------------------------------------------------------------------
+func _process_wall_climb(input: Vector2, delta: float) -> void:
+	# Gentle constant press into the wall so is_on_wall() stays true each frame.
+	velocity.x = float(_facing_direction) * 20.0
+
+	# Move up while jump is held, down while down is held, or stay put.
+	if _jump_held:
+		velocity.y = -wall_climb_speed
+	elif _down_held:
+		velocity.y = wall_slide_speed   # descend at the normal slide speed
+	else:
+		velocity.y = 0.0
+
+	# Switch between moving and idle animations without restarting every frame.
+	# This mirrors the _facing_direction flip pattern: only play when changed.
+	if velocity.y != 0.0:
+		if _sprite.animation != &"WallClimb":
+			_sprite.play("WallClimb")
+	else:
+		if _sprite.animation != &"WallClimbIdle":
+			_sprite.play("WallClimbIdle")
+
+	# Exhaustion: _stamina_exhausted is set by _tick_stamina() when _stamina hits 0.
+	# Push the player away from the wall so they don't immediately re-grab.
+	if _stamina_exhausted:
+		velocity.x = _last_wall_normal.x * 80.0
+		velocity.y = 50.0
+		_set_state(State.FALL)
+
+# ---------------------------------------------------------------------------
+# LEDGE HANG
+# Automatic ledge grab — no grip button needed.
+# The player freezes in place (zero velocity, zero gravity) and plays the
+# LedgeHang entry animation.  _on_animation_finished then loops LedgeHangIdle.
+# Jump → LEDGE_CLIMB.  Down or stamina empty → FALL.
+# ---------------------------------------------------------------------------
+func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
+	# Override all velocity — the player is locked to the ledge.
+	velocity = Vector2.ZERO
+
+	if _jump_pressed:
+		_ledge_hang_position = global_position   # save for climb-up offset
+		_set_state(State.LEDGE_CLIMB)
+	elif _down_held or _stamina_exhausted:
+		velocity.y = 80.0   # small downward nudge so the player clears the ledge edge
+		_set_state(State.FALL)
+
+# ---------------------------------------------------------------------------
+# LEDGE CLIMB
+# Player is pulling themselves up over the ledge.
+# The animation runs to completion; _on_animation_finished handles the state
+# transition and positions the player on top of the surface.
+# ---------------------------------------------------------------------------
+func _process_ledge_climb(_input: Vector2, _delta: float) -> void:
+	velocity = Vector2.ZERO   # stay frozen while the climb animation plays
+
+# ---------------------------------------------------------------------------
+# STAMINA TICKER
+# Called every physics frame from _physics_process (after _tick_timers).
+# Drains stamina while gripping, starts a regen delay when resting, then
+# regenerates.  Emits stamina_changed so the HUD can react when built.
+# ---------------------------------------------------------------------------
+func _tick_stamina(delta: float) -> void:
+	var prev_stamina := _stamina
+	var is_gripping  := (state == State.WALL_CLIMB
+						 or state == State.LEDGE_HANG
+						 or state == State.LEDGE_CLIMB)
+
+	if is_gripping:
+		# Choose the drain rate for the current activity.
+		var drain : float
+		if state == State.WALL_CLIMB:
+			drain = stamina_drain_wall_climb
+		elif state == State.LEDGE_HANG and _sprite.animation == &"LedgeHangIdle":
+			# Idle hang uses the lower drain rate — only if the toggle is on.
+			drain = stamina_drain_ledge_hang_idle if ledge_hang_idle_drains_stamina else 0.0
+		else:
+			# LedgeHang entry animation and LedgeClimb both use the active rate.
+			drain = stamina_drain_ledge_hang
+
+		_stamina = maxf(_stamina - drain * delta, 0.0)
+		_stamina_regen_timer = stamina_regen_delay   # reset regen delay every draining frame
+
+		if _stamina <= 0.0:
+			_stamina_exhausted = true
+
+	else:
+		# Not gripping — wait out the regen delay, then start recovering.
+		if _stamina_regen_timer > 0.0:
+			_stamina_regen_timer = maxf(_stamina_regen_timer - delta, 0.0)
+		elif _stamina < stamina_max:
+			_stamina = minf(_stamina + stamina_regen_rate * delta, stamina_max)
+
+	# Clear exhaustion once the player has recovered enough to grip again (25 % threshold).
+	# The 25 % buffer prevents the flicker of rapidly entering and exiting exhaustion.
+	if _stamina_exhausted and _stamina >= stamina_max * 0.25:
+		_stamina_exhausted = false
+
+	# Only emit the signal when the value actually changed — avoids redundant HUD updates.
+	if _stamina != prev_stamina:
+		stamina_changed.emit(_stamina, stamina_max)
 
 # ---------------------------------------------------------------------------
 # WALL JUMP
@@ -459,7 +632,13 @@ func _on_landed() -> void:
 	_air_dashes_used = 0
 	_has_double_jumped = false
 	_coyote_timer = 0.0
-	_wall_coyote_timer = 0.0   # clear any leftover wall coyote window on landing
+	_wall_coyote_timer = 0.0
+	# Fully restore stamina on landing — touching the ground is the natural
+	# recovery moment (mirrors how most platformers handle grip/stamina).
+	_stamina               = stamina_max
+	_stamina_exhausted     = false
+	_stamina_regen_timer   = 0.0
+	stamina_changed.emit(_stamina, stamina_max)
 	# The jump buffer is intentionally NOT reset here — _process_ground() will
 	# consume it on the same frame so the jump fires immediately on landing.
 
@@ -503,6 +682,11 @@ func _update_state() -> void:
 	if state == State.DASH and _dash_timer > 0.0:
 		return
 
+	# Ledge hang and climb are managed entirely by their own process functions
+	# and by _on_animation_finished — don't override them here.
+	if state == State.LEDGE_HANG or state == State.LEDGE_CLIMB:
+		return
+
 	if is_on_floor():
 		if _down_held and _input_x != 0.0:
 			_set_state(State.CRAWL)
@@ -513,16 +697,27 @@ func _update_state() -> void:
 		else:
 			_set_state(State.IDLE)
 	else:
-		# Wall slide: falling + touching a wall + actively pressing into it.
-		# _facing_direction matches the wall side, so same-sign input means
-		# the player is pressing toward the wall. Releasing exits to FALL.
-		var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
-		if is_on_wall() and velocity.y > 0.0 and pressing_into_wall:
-			_set_state(State.WALL_SLIDE)
-		elif velocity.y < 0.0:
-			_set_state(State.JUMP)
+		# Shorthand: can the player use grip-based mechanics right now?
+		var can_grip := wall_climb_enabled and not _stamina_exhausted and _stamina > 0.0
+
+		# 1. WALL CLIMB — grip button held against a wall, stamina available.
+		if is_on_wall() and _grip_held and can_grip:
+			_set_state(State.WALL_CLIMB)
+
+		# 2. LEDGE HANG (automatic) — lower ray hits a wall but upper ray is clear.
+		#    Works on the way up OR down; no grip button required.
+		elif can_grip and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
+			_set_state(State.LEDGE_HANG)
+
+		# 3. WALL SLIDE — falling + pressing toward the wall (no grip needed).
 		else:
-			_set_state(State.FALL)
+			var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
+			if is_on_wall() and velocity.y > 0.0 and pressing_into_wall:
+				_set_state(State.WALL_SLIDE)
+			elif velocity.y < 0.0:
+				_set_state(State.JUMP)
+			else:
+				_set_state(State.FALL)
 
 # ---------------------------------------------------------------------------
 # STATE SETTER
@@ -538,21 +733,29 @@ func _set_state(new_state: State) -> void:
 	# like DASH or landing (→ IDLE/RUN) still cut through immediately.
 	# While a one-shot air animation plays, let physics state update but
 	# don't change the animation — same guard covers both DoubleJump and WallJump.
-	var one_shot := (_sprite.animation == &"DoubleJump" or _sprite.animation == &"WallJump")
+	# While a one-shot air animation plays, allow physics state to update
+	# (so gravity and collision stay correct) but don't stomp the animation.
+	# LedgeClimb is included so the climb-up clip can never be interrupted.
+	var one_shot := (_sprite.animation == &"DoubleJump"
+					 or _sprite.animation == &"WallJump"
+					 or _sprite.animation == &"LedgeClimb")
 	if one_shot and _sprite.is_playing():
-		if new_state in [State.JUMP, State.FALL, State.WALL_SLIDE]:
+		if new_state in [State.JUMP, State.FALL, State.WALL_SLIDE, State.WALL_CLIMB]:
 			state = new_state
 			return
 	state = new_state
 	match state:
-		State.IDLE:       _sprite.play("Idle")
-		State.RUN:        _sprite.play("Run")
-		State.DUCK:       _sprite.play("Crouch")
-		State.CRAWL:      _sprite.play("Crawl")
-		State.JUMP:       _sprite.play("JumpRise")
-		State.FALL:       _sprite.play("JumpFall")
-		State.DASH:       _sprite.play("DashLoop")
-		State.WALL_SLIDE: _sprite.play("WallSlide")
+		State.IDLE:        _sprite.play("Idle")
+		State.RUN:         _sprite.play("Run")
+		State.DUCK:        _sprite.play("Crouch")
+		State.CRAWL:       _sprite.play("Crawl")
+		State.JUMP:        _sprite.play("JumpRise")
+		State.FALL:        _sprite.play("JumpFall")
+		State.DASH:        _sprite.play("DashLoop")
+		State.WALL_SLIDE:  _sprite.play("WallSlide")
+		State.WALL_CLIMB:  _sprite.play("WallClimb")   # _process_wall_climb updates this each frame
+		State.LEDGE_HANG:  _sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
+		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
 # ---------------------------------------------------------------------------
@@ -561,10 +764,28 @@ func _set_state(new_state: State) -> void:
 # Used to hand off from committed one-shot animations back to the live state.
 # ---------------------------------------------------------------------------
 func _on_animation_finished() -> void:
+	# ---- DoubleJump ----
+	# Resume whichever air animation matches velocity at the moment the flip ends.
 	if _sprite.animation == &"DoubleJump":
 		_sprite.play("JumpFall" if velocity.y >= 0.0 else "JumpRise")
+
+	# ---- WallJump ----
+	# Wall jump always launches upward; hand off to JumpRise (or JumpFall if
+	# the player somehow peaks and starts falling before the clip finishes).
 	elif _sprite.animation == &"WallJump":
-		# Wall jump always launches upward, so hand off to JumpRise.
-		# If somehow the player is already falling by the time the clip ends,
-		# fall back to JumpFall to avoid a visual glitch.
 		_sprite.play("JumpFall" if velocity.y >= 0.0 else "JumpRise")
+
+	# ---- LedgeHang (entry) → LedgeHangIdle (loop) ----
+	# The grab animation plays once; afterwards the player idles on the ledge.
+	elif _sprite.animation == &"LedgeHang":
+		_sprite.play("LedgeHangIdle")
+
+	# ---- LedgeClimb → IDLE ----
+	# The climb-up animation finishes; nudge the player onto the surface.
+	# The offsets below are approximate — tune them to match the art.
+	elif _sprite.animation == &"LedgeClimb":
+		# Move the player up by roughly the capsule half-height so they land
+		# on top of the ledge, and forward by a small step so they clear the edge.
+		global_position.y -= 32.0
+		global_position.x += float(_facing_direction) * 8.0
+		_set_state(State.IDLE)

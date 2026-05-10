@@ -39,7 +39,7 @@ extends CharacterBody2D
 @export_group("Jump")
 ## Initial vertical velocity applied when the player jumps.
 ## Negative because Godot's Y-axis points downward (up = negative).
-@export_range(-800.0, -50.0, 10.0, "suffix:px/s") var jump_force: float = -330.0
+@export_range(-800.0, -50.0, 10.0, "suffix:px/s") var jump_force: float = -250.0
 ## Gravity multiplier while the player is rising AND holding the jump key.
 ## Values below 1.0 make the ascent hang longer for a floatier feel.
 @export_range(0.1, 1.0, 0.05) var variable_jump_gravity_multiplier: float = 0.5
@@ -64,14 +64,18 @@ extends CharacterBody2D
 @export_group("Wall")
 ## Maximum fall speed while sliding down a wall. Lower = stickier.
 @export_range(10.0, 300.0, 5.0, "suffix:px/s") var wall_slide_speed: float = 60.0
+## Fall speed when holding Down while wall-sliding — the fast-drop override.
+@export_range(50.0, 600.0, 10.0, "suffix:px/s") var wall_slide_fast_speed: float = 230.0
 ## Horizontal push-off speed as a multiplier of move_speed when wall jumping.
-@export_range(0.5, 2.0, 0.1) var wall_jump_x_multiplier: float = 1.2
+@export_range(0.5, 2.0, 0.1) var wall_jump_x_multiplier: float = 1.5
+## Whether wall jumping resets the air dash counter.
+@export var wall_jump_refreshes_dash: bool = false
 
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
-@export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 400.0
+@export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 380.0
 ## How long (in seconds) a single dash lasts before normal movement resumes.
-@export_range(0.05, 0.5, 0.01, "suffix:s") var dash_duration: float = 0.18
+@export_range(0.05, 0.5, 0.01, "suffix:s") var dash_duration: float = 0.12
 ## Cooldown (in seconds) between dashes so the player can't spam them.
 @export_range(0.1, 2.0, 0.05, "suffix:s") var dash_cooldown: float = 0.6
 ## Allow dashing while airborne. Disable for a more grounded feel.
@@ -278,10 +282,13 @@ func _process_crawl(input: Vector2, delta: float) -> void:
 # drifts down slowly. Jump input while sliding fires a wall jump.
 # ---------------------------------------------------------------------------
 func _process_wall_slide(_input: Vector2, delta: float) -> void:
-	# Gentle press into the wall so contact is maintained.
+	# Gentle press into the wall so contact is maintained each frame.
 	velocity.x = float(_facing_direction) * 20.0
-	# Bleed off downward speed toward wall_slide_speed — never accelerate past it.
-	velocity.y = move_toward(velocity.y, wall_slide_speed, _base_gravity * 0.15 * delta)
+	# Holding Down fast-drops; otherwise drift slowly.
+	if _down_held:
+		velocity.y = move_toward(velocity.y, wall_slide_fast_speed, _base_gravity * 0.4 * delta)
+	else:
+		velocity.y = move_toward(velocity.y, wall_slide_speed, _base_gravity * 0.15 * delta)
 
 	if _jump_pressed:
 		_start_wall_jump()
@@ -298,7 +305,9 @@ func _start_wall_jump() -> void:
 	velocity.x = get_wall_normal().x * move_speed * wall_jump_x_multiplier
 	_coyote_timer = 0.0
 	_jump_buffer_timer = 0.0
-	_has_double_jumped = false   # wall jump refreshes the double jump
+	_has_double_jumped = false   # wall jump always refreshes the double jump
+	if wall_jump_refreshes_dash:
+		_air_dashes_used = 0
 	state = State.JUMP
 	_sprite.play("WallJump")
 
@@ -444,13 +453,9 @@ func _tick_timers(delta: float) -> void:
 
 	_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
 
-	# Detect the exact frame the dash cooldown expires so we can replenish air
-	# dashes. This means the cooldown IS the recharge timer — wait it out in the
-	# air and your air dashes come back, no landing required.
-	var cooldown_was_active := _dash_cooldown_timer > 0.0
+	# Cooldown only prevents rapid re-dashing — it no longer restores air dashes.
+	# Air dashes restore exclusively on landing (see _on_landed).
 	_dash_cooldown_timer = maxf(_dash_cooldown_timer - delta, 0.0)
-	if cooldown_was_active and _dash_cooldown_timer == 0.0:
-		_air_dashes_used = 0
 	# _dash_timer is ticked inside _process_dash() so it only runs while dashing.
 
 # ---------------------------------------------------------------------------
@@ -473,8 +478,11 @@ func _update_state() -> void:
 		else:
 			_set_state(State.IDLE)
 	else:
-		# Wall slide: falling + pressing against a wall.
-		if is_on_wall() and velocity.y > 0.0:
+		# Wall slide: falling + touching a wall + actively pressing into it.
+		# _facing_direction matches the wall side, so same-sign input means
+		# the player is pressing toward the wall. Releasing exits to FALL.
+		var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
+		if is_on_wall() and velocity.y > 0.0 and pressing_into_wall:
 			_set_state(State.WALL_SLIDE)
 		elif velocity.y < 0.0:
 			_set_state(State.JUMP)

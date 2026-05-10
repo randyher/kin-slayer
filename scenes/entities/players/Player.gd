@@ -80,7 +80,7 @@ signal stamina_changed(current: float, maximum: float)
 
 @export_group("Stamina")
 ## Total stamina pool. Drains while climbing or hanging; refills when resting.
-@export_range(0.0, 200.0, 5.0) var stamina_max: float = 100.0
+@export_range(0.0, 200.0, 5.0) var stamina_max: float = 90.0
 ## Stamina drained per second while actively climbing a wall.
 @export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_wall_climb: float = 20.0
 ## Stamina drained per second during the LedgeHang entry animation.
@@ -98,6 +98,9 @@ signal stamina_changed(current: float, maximum: float)
 @export var wall_climb_enabled: bool = true
 ## If false, LedgeHangIdle does not drain stamina — player can hang indefinitely.
 @export var ledge_hang_idle_drains_stamina: bool = true
+## Pixels to nudge the player upward the moment they grab a ledge.
+## Increase to make the hands appear higher on the ledge edge.
+@export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 5.0
 
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
@@ -245,7 +248,9 @@ func _physics_process(delta: float) -> void:
 		_on_landed()
 
 	# --- Update facing direction and flip sprite to match ---
-	if input.x != 0:
+	# Locked during ledge hang/climb so the player can't spin around mid-hang.
+	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB)
+	if input.x != 0 and not ledge_locked:
 		_facing_direction = int(sign(input.x))
 	_sprite.flip_h = _facing_direction == -1
 
@@ -281,6 +286,12 @@ var _down_held: bool = false
 ## Grip button — universal "maintain contact" action (p1_grip / p2_grip).
 ## Used for wall climbing, ledge hanging, and future interactions.
 var _grip_held: bool = false
+## Dedicated up input (p1_up / p2_up).
+## Used to climb up a wall and to pull up from a ledge hang.
+## Kept separate from jump so up and jump can be used interchangeably
+## in normal movement without accidentally triggering climb/pull-up.
+var _up_pressed: bool = false
+var _up_held: bool    = false
 
 func _get_input() -> Vector2:
 	var dir := Vector2.ZERO
@@ -293,6 +304,8 @@ func _get_input() -> Vector2:
 		_dash_pressed = Input.is_action_just_pressed("p1_dash")
 		_down_held    = Input.is_action_pressed("p1_down")
 		_grip_held    = Input.is_action_pressed("p1_grip")
+		_up_pressed   = Input.is_action_just_pressed("p1_up")
+		_up_held      = Input.is_action_pressed("p1_up")
 	else:
 		if Input.is_action_pressed("p2_right"):      dir.x += 1
 		if Input.is_action_pressed("p2_left"):       dir.x -= 1
@@ -301,6 +314,8 @@ func _get_input() -> Vector2:
 		_dash_pressed = Input.is_action_just_pressed("p2_dash")
 		_down_held    = Input.is_action_pressed("p2_down")
 		_grip_held    = Input.is_action_pressed("p2_grip")
+		_up_pressed   = Input.is_action_just_pressed("p2_up")
+		_up_held      = Input.is_action_pressed("p2_up")
 
 	_input_x = dir.x
 	return dir
@@ -386,8 +401,8 @@ func _process_wall_climb(input: Vector2, delta: float) -> void:
 	# Gentle constant press into the wall so is_on_wall() stays true each frame.
 	velocity.x = float(_facing_direction) * 20.0
 
-	# Move up while jump is held, down while down is held, or stay put.
-	if _jump_held:
+	# Move up while up is held, down while down is held, or stay put.
+	if _up_held:
 		velocity.y = -wall_climb_speed
 	elif _down_held:
 		velocity.y = wall_slide_speed   # descend at the normal slide speed
@@ -421,7 +436,7 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 	# Override all velocity — the player is locked to the ledge.
 	velocity = Vector2.ZERO
 
-	if _jump_pressed:
+	if _up_pressed:
 		_ledge_hang_position = global_position   # save for climb-up offset
 		_set_state(State.LEDGE_CLIMB)
 	elif _down_held or _stamina_exhausted:
@@ -700,14 +715,16 @@ func _update_state() -> void:
 		# Shorthand: can the player use grip-based mechanics right now?
 		var can_grip := wall_climb_enabled and not _stamina_exhausted and _stamina > 0.0
 
-		# 1. WALL CLIMB — grip button held against a wall, stamina available.
-		if is_on_wall() and _grip_held and can_grip:
-			_set_state(State.WALL_CLIMB)
-
-		# 2. LEDGE HANG (automatic) — lower ray hits a wall but upper ray is clear.
-		#    Works on the way up OR down; no grip button required.
-		elif can_grip and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
+		# 1. LEDGE HANG — highest priority, checked before wall climb.
+		#    If the lower ray hits a wall but the upper ray is clear, a grabbable
+		#    ledge is present. This must beat wall climb so the player can't
+		#    climb straight past a ledge with grip held.
+		if can_grip and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
 			_set_state(State.LEDGE_HANG)
+
+		# 2. WALL CLIMB — grip held + on wall, no ledge in the way.
+		elif is_on_wall() and _grip_held and can_grip:
+			_set_state(State.WALL_CLIMB)
 
 		# 3. WALL SLIDE — falling + pressing toward the wall (no grip needed).
 		else:
@@ -754,7 +771,9 @@ func _set_state(new_state: State) -> void:
 		State.DASH:        _sprite.play("DashLoop")
 		State.WALL_SLIDE:  _sprite.play("WallSlide")
 		State.WALL_CLIMB:  _sprite.play("WallClimb")   # _process_wall_climb updates this each frame
-		State.LEDGE_HANG:  _sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
+		State.LEDGE_HANG:
+			global_position.y -= ledge_hang_snap_up   # nudge up so hands sit on the ledge edge
+			_sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
 		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
@@ -786,6 +805,6 @@ func _on_animation_finished() -> void:
 	elif _sprite.animation == &"LedgeClimb":
 		# Move the player up by roughly the capsule half-height so they land
 		# on top of the ledge, and forward by a small step so they clear the edge.
-		global_position.y -= 32.0
-		global_position.x += float(_facing_direction) * 8.0
+		global_position.y -= 39.0
+		global_position.x += float(_facing_direction) * 14.5
 		_set_state(State.IDLE)

@@ -75,6 +75,25 @@
 [ext_resource type="Texture2D" uid="uid://d4b5yl1bu58ly" path="res://assets/sprites/players/p1/Knockback/Knockback06.png" id="kb6"]
 [ext_resource type="Texture2D" uid="uid://cltroy4rdtwif" path="res://assets/sprites/players/p1/Land/Land01.png" id="la1"]
 [ext_resource type="Texture2D" uid="uid://bshpbyca42jos" path="res://assets/sprites/players/p1/Land/Land02.png" id="la2"]
+[ext_resource type="Texture2D" uid="uid://h6371gqcnv5j" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb01.png" id="lc1"]
+[ext_resource type="Texture2D" uid="uid://dkcfpufpvi7ek" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb02.png" id="lc2"]
+[ext_resource type="Texture2D" uid="uid://by181oebjjimn" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb03.png" id="lc3"]
+[ext_resource type="Texture2D" uid="uid://qe73wmbggy3j" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb04.png" id="lc4"]
+[ext_resource type="Texture2D" uid="uid://d3svxoyibdwum" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb05.png" id="lc5"]
+[ext_resource type="Texture2D" uid="uid://ncqmqxypndf1" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb06.png" id="lc6"]
+[ext_resource type="Texture2D" uid="uid://bcikgckw15ic" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb07.png" id="lc7"]
+[ext_resource type="Texture2D" uid="uid://tl05up6y5q8l" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb08.png" id="lc8"]
+[ext_resource type="Texture2D" uid="uid://u5624lbj0yfq" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab01.png" id="lg1"]
+[ext_resource type="Texture2D" uid="uid://c7sy35dos0ce3" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab02.png" id="lg2"]
+[ext_resource type="Texture2D" uid="uid://cywwwbkh2mrao" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab03.png" id="lg3"]
+[ext_resource type="Texture2D" uid="uid://ds1fpvvsiavlo" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab04.png" id="lg4"]
+[ext_resource type="Texture2D" uid="uid://b8iuqkh48joae" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab05.png" id="lg5"]
+[ext_resource type="Texture2D" uid="uid://dv0e4aeodtwd0" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang01.png" id="lh1"]
+[ext_resource type="Texture2D" uid="uid://dl8pa1fhjk6fh" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang02.png" id="lh2"]
+[ext_resource type="Texture2D" uid="uid://cdq2jgt4qyglu" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang03.png" id="lh3"]
+[ext_resource type="Texture2D" uid="uid://cw3gl5l8etyqx" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang04.png" id="lh4"]
+[ext_resource type="Texture2D" uid="uid://cahkxjvw064qa" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang05.png" id="lh5"]
+[ext_resource type="Texture2D" uid="uid://1wxppcbyblpn" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang06.png" id="lh6"]
 [ext_resource type="Texture2D" uid="uid://d2ucectlgtvoy" path="res://assets/sprites/players/p1/Run/Run01.png" id="r1"]
 [ext_resource type="Texture2D" uid="uid://cobap7x2n3oba" path="res://assets/sprites/players/p1/Run/Run02.png" id="r2"]
 [ext_resource type="Texture2D" uid="uid://1yeg4fhijbmx" path="res://assets/sprites/players/p1/Run/Run03.png" id="r3"]
@@ -93,6 +112,20 @@
 [ext_resource type="Texture2D" uid="uid://b5e2x5atr48x2" path="res://assets/sprites/players/p1/Roll/Roll08.png" id="ro8"]
 [ext_resource type="Texture2D" uid="uid://dthtwgpq1hkfa" path="res://assets/sprites/players/p1/Roll/Roll09.png" id="ro9"]
 [ext_resource type="Texture2D" uid="uid://0n2us1cdvex2" path="res://assets/sprites/players/p1/Roll/Roll10.png" id="ro10"]
+[ext_resource type="Texture2D" uid="uid://dux2ryvxd2k3d" path="res://assets/sprites/players/p1/WallClimb/WallClimb01.png" id="wc1"]
+[ext_resource type="Texture2D" uid="uid://0wx0aiokxkmx" path="res://assets/sprites/players/p1/WallClimb/WallClimb02.png" id="wc2"]
+[ext_resource type="Texture2D" uid="uid://scmgp5wbeb34" path="res://assets/sprites/players/p1/WallClimb/WallClimb03.png" id="wc3"]
+[ext_resource type="Texture2D" uid="uid://dghs0dm2j4x55" path="res://assets/sprites/players/p1/WallClimb/WallClimb04.png" id="wc4"]
+[ext_resource type="Texture2D" uid="uid://lsu7vsnrobmw" path="res://assets/sprites/players/p1/WallClimb/WallClimb05.png" id="wc5"]
+[ext_resource type="Texture2D" uid="uid://73lynd66nslu" path="res://assets/sprites/players/p1/WallClimb/WallClimb06.png" id="wc6"]
+[ext_resource type="Texture2D" uid="uid://dvhmtcfdotxn5" path="res://assets/sprites/players/p1/WallClimb/WallClimb07.png" id="wc7"]
+[ext_resource type="Texture2D" uid="uid://cth6xbwaufap5" path="res://assets/sprites/players/p1/WallClimb/WallClimb08.png" id="wc8"]
+[ext_resource type="Texture2D" uid="uid://ft05p0y3gegj" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle01.png" id="wci1"]
+[ext_resource type="Texture2D" uid="uid://ntipth7abtdy" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle02.png" id="wci2"]
+[ext_resource type="Texture2D" uid="uid://cs8ccqf4egtot" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle03.png" id="wci3"]
+[ext_resource type="Texture2D" uid="uid://bl0blld8tqsfc" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle04.png" id="wci4"]
+[ext_resource type="Texture2D" uid="uid://dvr5g0ku2rk3t" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle05.png" id="wci5"]
+[ext_resource type="Texture2D" uid="uid://bggucpjfvi3uq" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle06.png" id="wci6"]
 [ext_resource type="Texture2D" uid="uid://bmibndp3pnqp6" path="res://assets/sprites/players/p1/WallJump/WallJump01.png" id="wj1"]
 [ext_resource type="Texture2D" uid="uid://dehfnoojamlib" path="res://assets/sprites/players/p1/WallJump/WallJump02.png" id="wj2"]
 [ext_resource type="Texture2D" uid="uid://b4yd8k2y3dfkn" path="res://assets/sprites/players/p1/WallJump/WallJump03.png" id="wj3"]
@@ -110,39 +143,6 @@
 [ext_resource type="Texture2D" uid="uid://urekosoitu6b" path="res://assets/sprites/players/p1/WallSlide/WallSlide04.png" id="wsl4"]
 [ext_resource type="Texture2D" uid="uid://q78b21lbay5m" path="res://assets/sprites/players/p1/WallSlide/WallSlide05.png" id="wsl5"]
 [ext_resource type="Texture2D" uid="uid://cmjkr7guq46b1" path="res://assets/sprites/players/p1/WallSlide/WallSlide06.png" id="wsl6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb01.png" id="wc1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb02.png" id="wc2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb03.png" id="wc3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb04.png" id="wc4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb05.png" id="wc5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb06.png" id="wc6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb07.png" id="wc7"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimb/WallClimb08.png" id="wc8"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle01.png" id="wci1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle02.png" id="wci2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle03.png" id="wci3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle04.png" id="wci4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle05.png" id="wci5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallClimbIdle/WallClimbIdle06.png" id="wci6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab01.png" id="lg1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab02.png" id="lg2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab03.png" id="lg3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab04.png" id="lg4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeGrab/LedgeGrab05.png" id="lg5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang01.png" id="lh1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang02.png" id="lh2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang03.png" id="lh3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang04.png" id="lh4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang05.png" id="lh5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang06.png" id="lh6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb01.png" id="lc1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb02.png" id="lc2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb03.png" id="lc3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb04.png" id="lc4"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb05.png" id="lc5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb06.png" id="lc6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb07.png" id="lc7"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LedgeClimb/LedgeClimb08.png" id="lc8"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_anim"]
 animations = [{
@@ -445,6 +445,78 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("lc1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lc8")
+}],
+"loop": false,
+"name": &"LedgeClimb",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("lg1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lg2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lg3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lg4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lg5")
+}],
+"loop": false,
+"name": &"LedgeHang",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("lh1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lh2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lh3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lh4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lh5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lh6")
+}],
+"loop": true,
+"name": &"LedgeHangIdle",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("ro1")
 }, {
 "duration": 1.0,
@@ -509,6 +581,58 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("wc1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wc8")
+}],
+"loop": true,
+"name": &"WallClimb",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("wci1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wci2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wci3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wci4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wci5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wci6")
+}],
+"loop": true,
+"name": &"WallClimbIdle",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("wj1")
 }, {
 "duration": 1.0,
@@ -567,130 +691,6 @@ animations = [{
 "loop": true,
 "name": &"WallSlide",
 "speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("wc1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc3")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc4")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wc8")
-}],
-"loop": true,
-"name": &"WallClimb",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("wci1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wci2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wci3")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wci4")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wci5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("wci6")
-}],
-"loop": true,
-"name": &"WallClimbIdle",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("lg1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lg2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lg3")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lg4")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lg5")
-}],
-"loop": false,
-"name": &"LedgeHang",
-"speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("lh1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lh2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lh3")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lh4")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lh5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lh6")
-}],
-"loop": true,
-"name": &"LedgeHangIdle",
-"speed": 8.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("lc1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc3")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc4")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc5")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc6")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc7")
-}, {
-"duration": 1.0,
-"texture": ExtResource("lc8")
-}],
-"loop": false,
-"name": &"LedgeClimb",
-"speed": 12.0
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_r5t2w"]
@@ -708,19 +708,12 @@ animation = &"Idle"
 position = Vector2(0, 22)
 shape = SubResource("CapsuleShape2D_r5t2w")
 
-; LedgeCheckUpper — casts horizontally at head height.
-; If this ray HITS, there is a wall above the ledge edge (can't grab safely).
-; Updated each frame in _physics_process to face _facing_direction.
-[node name="LedgeCheckUpper" type="RayCast2D" parent="."]
+[node name="LedgeCheckUpper" type="RayCast2D" parent="." unique_id=591289981]
 position = Vector2(0, -4)
 target_position = Vector2(12, 0)
-collision_mask = 1
 
-; LedgeCheckLower — casts horizontally at chest height.
-; If this ray HITS while LedgeCheckUpper does NOT, a grabbable ledge is present.
-[node name="LedgeCheckLower" type="RayCast2D" parent="."]
-position = Vector2(0, 8)
+[node name="LedgeCheckLower" type="RayCast2D" parent="." unique_id=1106861895]
+position = Vector2(0, 1)
 target_position = Vector2(12, 0)
-collision_mask = 1
 
 [node name="WeaponSlot" type="Node2D" parent="." unique_id=1787813718]

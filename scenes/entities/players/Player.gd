@@ -61,6 +61,12 @@ extends CharacterBody2D
 ## Horizontal speed while crawling. Slower than run — player is prone.
 @export_range(20.0, 200.0, 5.0, "suffix:px/s") var crawl_speed: float = 80.0
 
+@export_group("Wall")
+## Maximum fall speed while sliding down a wall. Lower = stickier.
+@export_range(10.0, 300.0, 5.0, "suffix:px/s") var wall_slide_speed: float = 60.0
+## Horizontal push-off speed as a multiplier of move_speed when wall jumping.
+@export_range(0.5, 2.0, 0.1) var wall_jump_x_multiplier: float = 1.2
+
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
 @export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 400.0
@@ -78,7 +84,7 @@ extends CharacterBody2D
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -156,6 +162,8 @@ func _physics_process(delta: float) -> void:
 			_process_crawl(input, delta)
 		State.JUMP, State.FALL:
 			_process_air(input, delta)
+		State.WALL_SLIDE:
+			_process_wall_slide(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
 
@@ -263,6 +271,36 @@ func _process_crawl(input: Vector2, delta: float) -> void:
 	velocity.y += _base_gravity * delta
 	if _jump_pressed or _jump_buffer_timer > 0.0:
 		_start_jump()
+
+# ---------------------------------------------------------------------------
+# WALL SLIDE
+# Player is falling against a wall. Gravity is heavily reduced so the player
+# drifts down slowly. Jump input while sliding fires a wall jump.
+# ---------------------------------------------------------------------------
+func _process_wall_slide(_input: Vector2, delta: float) -> void:
+	# Gentle press into the wall so contact is maintained.
+	velocity.x = float(_facing_direction) * 20.0
+	# Bleed off downward speed toward wall_slide_speed — never accelerate past it.
+	velocity.y = move_toward(velocity.y, wall_slide_speed, _base_gravity * 0.15 * delta)
+
+	if _jump_pressed:
+		_start_wall_jump()
+
+# ---------------------------------------------------------------------------
+# WALL JUMP
+# Launches the player away from the wall. State is set directly (same pattern
+# as _double_jump) so WallJump animation is never immediately stomped.
+# ---------------------------------------------------------------------------
+func _start_wall_jump() -> void:
+	# get_wall_normal().x is +1 for a left wall, -1 for a right wall —
+	# multiplying by move_speed pushes the player away from the surface.
+	velocity.y = jump_force
+	velocity.x = get_wall_normal().x * move_speed * wall_jump_x_multiplier
+	_coyote_timer = 0.0
+	_jump_buffer_timer = 0.0
+	_has_double_jumped = false   # wall jump refreshes the double jump
+	state = State.JUMP
+	_sprite.play("WallJump")
 
 # ---------------------------------------------------------------------------
 # AIR MOVEMENT
@@ -435,7 +473,10 @@ func _update_state() -> void:
 		else:
 			_set_state(State.IDLE)
 	else:
-		if velocity.y < 0.0:
+		# Wall slide: falling + pressing against a wall.
+		if is_on_wall() and velocity.y > 0.0:
+			_set_state(State.WALL_SLIDE)
+		elif velocity.y < 0.0:
 			_set_state(State.JUMP)
 		else:
 			_set_state(State.FALL)
@@ -452,19 +493,23 @@ func _set_state(new_state: State) -> void:
 	# (so gravity, collision, and air-dash logic stay correct) but don't touch
 	# the animation. Only natural air transitions are guarded — deliberate inputs
 	# like DASH or landing (→ IDLE/RUN) still cut through immediately.
-	if _sprite.animation == &"DoubleJump" and _sprite.is_playing():
-		if new_state == State.JUMP or new_state == State.FALL:
+	# While a one-shot air animation plays, let physics state update but
+	# don't change the animation — same guard covers both DoubleJump and WallJump.
+	var one_shot := (_sprite.animation == &"DoubleJump" or _sprite.animation == &"WallJump")
+	if one_shot and _sprite.is_playing():
+		if new_state in [State.JUMP, State.FALL, State.WALL_SLIDE]:
 			state = new_state
 			return
 	state = new_state
 	match state:
-		State.IDLE: _sprite.play("Idle")
-		State.RUN:  _sprite.play("Run")
-		State.DUCK:  _sprite.play("Crouch")
-		State.CRAWL: _sprite.play("Crawl")
-		State.JUMP: _sprite.play("JumpRise")
-		State.FALL: _sprite.play("JumpFall")
-		State.DASH: _sprite.play("DashLoop")
+		State.IDLE:       _sprite.play("Idle")
+		State.RUN:        _sprite.play("Run")
+		State.DUCK:       _sprite.play("Crouch")
+		State.CRAWL:      _sprite.play("Crawl")
+		State.JUMP:       _sprite.play("JumpRise")
+		State.FALL:       _sprite.play("JumpFall")
+		State.DASH:       _sprite.play("DashLoop")
+		State.WALL_SLIDE: _sprite.play("WallSlide")
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
 # ---------------------------------------------------------------------------
@@ -473,7 +518,10 @@ func _set_state(new_state: State) -> void:
 # Used to hand off from committed one-shot animations back to the live state.
 # ---------------------------------------------------------------------------
 func _on_animation_finished() -> void:
-	# Once the double jump flip plays through completely, resume whichever air
-	# animation is correct for the player's current velocity at that moment.
 	if _sprite.animation == &"DoubleJump":
+		_sprite.play("JumpFall" if velocity.y >= 0.0 else "JumpRise")
+	elif _sprite.animation == &"WallJump":
+		# Wall jump always launches upward, so hand off to JumpRise.
+		# If somehow the player is already falling by the time the clip ends,
+		# fall back to JumpFall to avoid a visual glitch.
 		_sprite.play("JumpFall" if velocity.y >= 0.0 else "JumpRise")

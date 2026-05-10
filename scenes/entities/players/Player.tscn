@@ -93,6 +93,23 @@
 [ext_resource type="Texture2D" uid="uid://b5e2x5atr48x2" path="res://assets/sprites/players/p1/Roll/Roll08.png" id="ro8"]
 [ext_resource type="Texture2D" uid="uid://dthtwgpq1hkfa" path="res://assets/sprites/players/p1/Roll/Roll09.png" id="ro9"]
 [ext_resource type="Texture2D" uid="uid://0n2us1cdvex2" path="res://assets/sprites/players/p1/Roll/Roll10.png" id="ro10"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide01.png" id="wsl1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide02.png" id="wsl2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide03.png" id="wsl3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide04.png" id="wsl4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide05.png" id="wsl5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallSlide/WallSlide06.png" id="wsl6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump01.png" id="wj1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump02.png" id="wj2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump03.png" id="wj3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump04.png" id="wj4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump05.png" id="wj5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump06.png" id="wj6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump07.png" id="wj7"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump08.png" id="wj8"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump09.png" id="wj9"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump10.png" id="wj10"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/WallJump/WallJump11.png" id="wj11"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_anim"]
 animations = [{
@@ -456,6 +473,67 @@ animations = [{
 "loop": true,
 "name": &"Run",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("wsl1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wsl2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wsl3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wsl4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wsl5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wsl6")
+}],
+"loop": true,
+"name": &"WallSlide",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("wj1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj9")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj10")
+}, {
+"duration": 1.0,
+"texture": ExtResource("wj11")
+}],
+"loop": false,
+"name": &"WallJump",
+"speed": 12.0
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_r5t2w"]

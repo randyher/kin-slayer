@@ -68,6 +68,9 @@ extends CharacterBody2D
 @export_range(50.0, 600.0, 10.0, "suffix:px/s") var wall_slide_fast_speed: float = 230.0
 ## Horizontal push-off speed as a multiplier of move_speed when wall jumping.
 @export_range(0.5, 2.0, 0.1) var wall_jump_x_multiplier: float = 1.5
+## Seconds after leaving a wall slide during which jump still triggers a wall jump.
+## Mirrors floor coyote time — forgives slightly-late inputs after releasing the wall.
+@export_range(0.0, 0.3, 0.01, "suffix:s") var wall_coyote_time: float = 0.12
 ## Whether wall jumping resets the air dash counter.
 @export var wall_jump_refreshes_dash: bool = false
 
@@ -129,6 +132,16 @@ var _was_on_floor: bool = false
 
 # Double jump — consumed the frame it fires, restored when the player lands.
 var _has_double_jumped: bool = false
+
+# Wall coyote time — counts down after the player leaves a wall slide.
+# While > 0 a wall jump is still permitted even though is_on_wall() is false.
+# Mirrors _coyote_timer exactly, but for walls instead of floors.
+var _wall_coyote_timer: float = 0.0
+
+# Last wall normal captured while wall-sliding.
+# Preserved so _start_wall_jump() can use the correct push direction during
+# the coyote window, when is_on_wall() is no longer true.
+var _last_wall_normal: Vector2 = Vector2.ZERO
 
 # ---------------------------------------------------------------------------
 # READY
@@ -284,6 +297,10 @@ func _process_crawl(input: Vector2, delta: float) -> void:
 func _process_wall_slide(_input: Vector2, delta: float) -> void:
 	# Gentle press into the wall so contact is maintained each frame.
 	velocity.x = float(_facing_direction) * 20.0
+	# Cache the wall normal every frame so _start_wall_jump() can use it
+	# during the coyote window after the player has left the wall.
+	if is_on_wall():
+		_last_wall_normal = get_wall_normal()
 	# Holding Down fast-drops; otherwise drift slowly.
 	if _down_held:
 		velocity.y = move_toward(velocity.y, wall_slide_fast_speed, _base_gravity * 0.4 * delta)
@@ -299,13 +316,15 @@ func _process_wall_slide(_input: Vector2, delta: float) -> void:
 # as _double_jump) so WallJump animation is never immediately stomped.
 # ---------------------------------------------------------------------------
 func _start_wall_jump() -> void:
-	# get_wall_normal().x is +1 for a left wall, -1 for a right wall —
-	# multiplying by move_speed pushes the player away from the surface.
+	# Use the cached wall normal so this works both when directly on the wall
+	# and during the coyote window after leaving it (when is_on_wall() is false).
+	var normal_x := get_wall_normal().x if is_on_wall() else _last_wall_normal.x
 	velocity.y = jump_force
-	velocity.x = get_wall_normal().x * move_speed * wall_jump_x_multiplier
+	velocity.x = normal_x * move_speed * wall_jump_x_multiplier
 	_coyote_timer = 0.0
+	_wall_coyote_timer = 0.0   # consume the wall coyote window
 	_jump_buffer_timer = 0.0
-	_has_double_jumped = false   # wall jump always refreshes the double jump
+	_has_double_jumped = false  # wall jump always refreshes the double jump
 	if wall_jump_refreshes_dash:
 		_air_dashes_used = 0
 	state = State.JUMP
@@ -341,10 +360,16 @@ func _process_air(input: Vector2, delta: float) -> void:
 
 	velocity.y += _base_gravity * gravity_scale * delta
 
-	# --- Coyote-time jump ---
-	# Allow a jump if the coyote timer is still running (recently left a ledge)
-	# OR if a normal jump was pressed.
-	if _jump_pressed and _coyote_timer > 0.0:
+	# --- Wall coyote-time jump ---
+	# Allow a wall jump if the wall coyote timer is still running (recently
+	# left a wall slide). Uses _last_wall_normal since is_on_wall() may be
+	# false at this point. Mirrors the floor coyote check below.
+	if _jump_pressed and _wall_coyote_timer > 0.0:
+		_start_wall_jump()
+	# --- Floor coyote-time jump ---
+	# Allow a normal jump if the coyote timer is still running (recently left
+	# a ledge) OR if a normal jump was pressed.
+	elif _jump_pressed and _coyote_timer > 0.0:
 		_start_jump()
 	# --- Double jump ---
 	# Only fires when: coyote window is gone (true air), haven't double-jumped
@@ -434,6 +459,7 @@ func _on_landed() -> void:
 	_air_dashes_used = 0
 	_has_double_jumped = false
 	_coyote_timer = 0.0
+	_wall_coyote_timer = 0.0   # clear any leftover wall coyote window on landing
 	# The jump buffer is intentionally NOT reset here — _process_ground() will
 	# consume it on the same frame so the jump fires immediately on landing.
 
@@ -450,6 +476,15 @@ func _tick_timers(delta: float) -> void:
 		_coyote_timer = coyote_time
 	else:
 		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
+
+	# Wall coyote timer: same pattern as above but for wall slides.
+	# Fed a fresh value every frame the player IS wall-sliding; begins
+	# depleting the first frame after they leave the slide. While > 0,
+	# jump input still fires a wall jump even without wall contact.
+	if state == State.WALL_SLIDE:
+		_wall_coyote_timer = wall_coyote_time
+	else:
+		_wall_coyote_timer = maxf(_wall_coyote_timer - delta, 0.0)
 
 	_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
 

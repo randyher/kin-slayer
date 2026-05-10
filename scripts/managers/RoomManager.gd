@@ -143,23 +143,31 @@ func _spawn_players(spawn_side: String) -> void:
 	#   "left"   → came from the left  → appear at SpawnRight
 	#   "top"    → came from above     → appear at SpawnBottom
 	#   "bottom" → came from below     → appear at SpawnTop
-	#   "none"   → first load          → default to SpawnLeft
+	#   "none"   → first load          → Player 1 at SpawnLeft, Player 2 at SpawnRight
 	var room := current_room as Room
 	if room == null:
 		return
+
+	if spawn_side == "none" and players.size() >= 2:
+		# Spread players across the room on first load rather than stacking them.
+		var p1 := players[0] as Node2D
+		var p2 := players[1] as Node2D
+		if room.spawn_left  != null: p1.global_position = room.spawn_left.global_position
+		if room.spawn_right != null: p2.global_position = room.spawn_right.global_position
+		return
+
 	var marker : Marker2D
 	match spawn_side:
 		"left":   marker = room.spawn_right
 		"top":    marker = room.spawn_bottom
 		"bottom": marker = room.spawn_top
-		_:        marker = room.spawn_left   # "right", "none", or anything else
+		_:        marker = room.spawn_left   # "right", "none" with 1 player, or anything else
 
 	if marker == null:
 		push_warning("RoomManager: spawn marker not found in room — players not repositioned.")
 		return
 
-	# Space multiple players out horizontally so they don't overlap.
-	# Player 0 goes at the marker; player 1 is nudged 24 px to the right, etc.
+	# For transitions, place all players at the entry marker with a small gap.
 	for i : int in players.size():
 		var player := players[i] as Node2D
-		player.global_position = marker.global_position + Vector2(i * 24.0, 0.0)
+		player.global_position = marker.global_position + Vector2(i * 48.0, 0.0)

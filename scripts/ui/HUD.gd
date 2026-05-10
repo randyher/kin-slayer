@@ -22,7 +22,7 @@ const HEART_FULL  : Texture2D = preload("res://assets/sprites/ui/hearts/HeartDet
 const HEART_EMPTY : Texture2D = preload("res://assets/sprites/ui/hearts/HeartDetailed_Empty.png")
 
 # Size each heart icon is displayed at in the HUD.
-const HEART_SIZE : Vector2 = Vector2(24, 24)
+const HEART_SIZE : Vector2 = Vector2(48, 48)
 
 # Full width of the stamina bar in pixels — must match the ColorRect in the scene.
 const STAMINA_BAR_WIDTH : float = 96.0   # TEMP

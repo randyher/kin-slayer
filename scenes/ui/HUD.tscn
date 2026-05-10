@@ -1,136 +1,116 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cyehcitmifcte"]
 
-; HUD.tscn — heads-up display for both players.
-; Instance this scene as a child of any root node that also has Player nodes
-; in the "players" group.  The attached script wires everything automatically.
-;
-; Layout:
-;   P1Hearts    — top-left,  heart icons
-;   P2Hearts    — top-right, heart icons
-;   P1StaminaBar — below P1Hearts, yellow bar  # TEMP
-;   P2StaminaBar — below P2Hearts, yellow bar  # TEMP
+[ext_resource type="Script" uid="uid://csryc5xi3wd2" path="res://scripts/ui/HUD.gd" id="1_hud"]
+[ext_resource type="Texture2D" uid="uid://clvga1k3t65ln" path="res://assets/sprites/ui/hearts/HeartDetailed_Full.png" id="2_full"]
 
-[ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/hearts/HeartDetailed_Full.png" id="2_full"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ui/hearts/HeartDetailed_Empty.png" id="3_empty"]
-
-; ---------------------------------------------------------------------------
-; ROOT — CanvasLayer renders the HUD on top of the game world.
-; layer = 1 puts it above everything except the fade overlay (layer 10).
-; ---------------------------------------------------------------------------
-[node name="HUD" type="CanvasLayer"]
-layer = 1
+[node name="HUD" type="CanvasLayer" unique_id=1925825739]
 script = ExtResource("1_hud")
 
-; Full-screen Control that all HUD elements are parented to.
-; anchor_right/bottom = 1 makes it stretch to fill the viewport.
-[node name="Control" type="Control" parent="."]
+[node name="Control" type="Control" parent="." unique_id=1347860652]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
-; ---------------------------------------------------------------------------
-; P1 HEARTS — top-left corner
-; HBoxContainer auto-sizes to fit its TextureRect children.
-; ---------------------------------------------------------------------------
-[node name="P1Hearts" type="HBoxContainer" parent="Control"]
-offset_left = 20.0
+[node name="P1Hearts" type="HBoxContainer" parent="Control" unique_id=1205079987]
+layout_mode = 0
+offset_left = 60.0
 offset_top = 20.0
-offset_right = 116.0
+offset_right = 156.0
 offset_bottom = 52.0
 
-[node name="Heart1" type="TextureRect" parent="Control/P1Hearts"]
+[node name="Heart1" type="TextureRect" parent="Control/P1Hearts" unique_id=2017474090]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Heart2" type="TextureRect" parent="Control/P1Hearts"]
+[node name="Heart2" type="TextureRect" parent="Control/P1Hearts" unique_id=1359100707]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Heart3" type="TextureRect" parent="Control/P1Hearts"]
+[node name="Heart3" type="TextureRect" parent="Control/P1Hearts" unique_id=851863232]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-; ---------------------------------------------------------------------------
-; P2 HEARTS — top-right corner
-; anchor_left/right = 1.0 anchors to the right edge.
-; grow_horizontal = 0 (GROW_DIRECTION_BEGIN) makes it expand leftward.
-; ---------------------------------------------------------------------------
-[node name="P2Hearts" type="HBoxContainer" parent="Control"]
+[node name="P2Hearts" type="HBoxContainer" parent="Control" unique_id=2053854100]
+layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-grow_horizontal = 0
-offset_left = -116.0
+offset_left = -156.0
 offset_top = 20.0
-offset_right = -20.0
+offset_right = -60.0
 offset_bottom = 52.0
+grow_horizontal = 0
 
-[node name="Heart1" type="TextureRect" parent="Control/P2Hearts"]
+[node name="Heart1" type="TextureRect" parent="Control/P2Hearts" unique_id=321003976]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Heart2" type="TextureRect" parent="Control/P2Hearts"]
+[node name="Heart2" type="TextureRect" parent="Control/P2Hearts" unique_id=690040660]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Heart3" type="TextureRect" parent="Control/P2Hearts"]
+[node name="Heart3" type="TextureRect" parent="Control/P2Hearts" unique_id=1557698480]
 custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
 texture = ExtResource("2_full")
 expand_mode = 1
 stretch_mode = 5
 
-; ---------------------------------------------------------------------------
-; P1 STAMINA BAR — below P1Hearts                                   # TEMP
-; modulate.a = 0 hides it; the script fades it in when stamina drops.# TEMP
-; Replace the two ColorRects with a proper sprite asset later.       # TEMP
-; ---------------------------------------------------------------------------
-[node name="P1StaminaBar" type="Control" parent="Control"]
-offset_left = 20.0
-offset_top = 58.0
-offset_right = 116.0
-offset_bottom = 66.0
+[node name="P1StaminaBar" type="Control" parent="Control" unique_id=1199981144]
 modulate = Color(1, 1, 1, 0)
+anchors_preset = 0
+offset_left = 80.0
+offset_top = 76.0
+offset_right = 176.0
+offset_bottom = 84.0
 
-[node name="Background" type="ColorRect" parent="Control/P1StaminaBar"]
+[node name="Background" type="ColorRect" parent="Control/P1StaminaBar" unique_id=1514202237]
+layout_mode = 0
 offset_right = 96.0
 offset_bottom = 8.0
-color = Color(0.2, 0.2, 0.2, 1.0)
+color = Color(0.2, 0.2, 0.2, 1)
 
-[node name="Foreground" type="ColorRect" parent="Control/P1StaminaBar"]
+[node name="Foreground" type="ColorRect" parent="Control/P1StaminaBar" unique_id=1103442845]
+layout_mode = 0
 offset_right = 96.0
 offset_bottom = 8.0
-color = Color(1.0, 0.85, 0.0, 1.0)
+color = Color(1, 0.85, 0, 1)
 
-; ---------------------------------------------------------------------------
-; P2 STAMINA BAR — below P2Hearts                                   # TEMP
-; Same structure as P1StaminaBar, mirrored to the right side.       # TEMP
-; ---------------------------------------------------------------------------
-[node name="P2StaminaBar" type="Control" parent="Control"]
+[node name="P2StaminaBar" type="Control" parent="Control" unique_id=231121336]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 0
 anchor_left = 1.0
 anchor_right = 1.0
+offset_left = -176.0
+offset_top = 76.0
+offset_right = -80.0
+offset_bottom = 84.0
 grow_horizontal = 0
-offset_left = -116.0
-offset_top = 58.0
-offset_right = -20.0
-offset_bottom = 66.0
-modulate = Color(1, 1, 1, 0)
 
-[node name="Background" type="ColorRect" parent="Control/P2StaminaBar"]
+[node name="Background" type="ColorRect" parent="Control/P2StaminaBar" unique_id=1724203653]
+layout_mode = 0
 offset_right = 96.0
 offset_bottom = 8.0
-color = Color(0.2, 0.2, 0.2, 1.0)
+color = Color(0.2, 0.2, 0.2, 1)
 
-[node name="Foreground" type="ColorRect" parent="Control/P2StaminaBar"]
+[node name="Foreground" type="ColorRect" parent="Control/P2StaminaBar" unique_id=674562335]
+layout_mode = 0
 offset_right = 96.0
 offset_bottom = 8.0
-color = Color(1.0, 0.85, 0.0, 1.0)
+color = Color(1, 0.85, 0, 1)

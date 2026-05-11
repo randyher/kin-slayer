@@ -697,6 +697,10 @@ animations = [{
 radius = 7.0
 height = 42.0
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_duck"]
+radius = 7.0
+height = 16.0
+
 [node name="Player" type="CharacterBody2D" unique_id=442864075]
 script = ExtResource("1_k3m7n")
 
@@ -707,6 +711,11 @@ animation = &"Idle"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1538950180]
 position = Vector2(0, 22)
 shape = SubResource("CapsuleShape2D_r5t2w")
+
+[node name="CollisionShapeDuck" type="CollisionShape2D" parent="." unique_id=826228345]
+position = Vector2(0, 36)
+shape = SubResource("CapsuleShape2D_duck")
+disabled = true
 
 [node name="LedgeCheckUpper" type="RayCast2D" parent="." unique_id=591289981]
 position = Vector2(0, -4)

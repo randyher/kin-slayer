@@ -124,10 +124,16 @@ func _apply_debug_collisions(enabled: bool) -> void:
 	_toggle_shape_nodes(get_tree().get_root(), enabled)
 
 func _toggle_shape_nodes(node: Node, enabled: bool) -> void:
-	if node is CollisionShape2D or node is CollisionPolygon2D:
-		var n2d := node as Node2D
-		n2d.visible = enabled
-		n2d.queue_redraw()   # force an immediate redraw so the change is instant
+	if node is CollisionShape2D:
+		var cs := node as CollisionShape2D
+		# Only show shapes that are active — disabled shapes aren't used for
+		# physics so showing them in debug mode would be misleading.
+		cs.visible = enabled and not cs.disabled
+		cs.queue_redraw()
+	elif node is CollisionPolygon2D:
+		var cp := node as CollisionPolygon2D
+		cp.visible = enabled and not cp.disabled
+		cp.queue_redraw()
 	for child in node.get_children():
 		_toggle_shape_nodes(child, enabled)
 

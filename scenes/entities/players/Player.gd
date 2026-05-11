@@ -152,6 +152,11 @@ var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravi
 ## Raycasts for automatic ledge detection — see PART 4 implementation notes.
 @onready var _ledge_check_upper  : RayCast2D        = $LedgeCheckUpper
 @onready var _ledge_check_lower  : RayCast2D        = $LedgeCheckLower
+## Standing and crouching collision capsules.
+## To tune crouch depth: adjust CapsuleShape2D_duck.height and
+## CollisionShapeDuck.position.y in Player.tscn.
+@onready var _collision_stand    : CollisionShape2D = $CollisionShape2D
+@onready var _collision_duck     : CollisionShape2D = $CollisionShapeDuck
 
 ## Which horizontal direction the player is facing: +1 = right, -1 = left.
 ## Used when dashing with no directional input (dash "forward").
@@ -195,6 +200,10 @@ var _stamina_exhausted: bool = false
 # The player is locked here (velocity = 0) during the hang, and it is used
 # to calculate the nudge-up offset when LedgeClimb finishes.
 var _ledge_hang_position: Vector2 = Vector2.ZERO
+
+# Counts down after leaving a ledge hang so the ledge raycasts can't
+# immediately re-grab the same ledge on the very next frame.
+var _ledge_grab_cooldown: float = 0.0
 
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
@@ -472,8 +481,18 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 	if _up_pressed:
 		_ledge_hang_position = global_position   # save for climb-up offset
 		_set_state(State.LEDGE_CLIMB)
+
+	elif _down_held and _grip_held and not _stamina_exhausted:
+		# Down + grip while hanging → re-enter wall climb to descend.
+		# A short cooldown prevents the ledge raycasts from immediately
+		# re-grabbing the same ledge on the next frame.
+		_ledge_grab_cooldown = 0.25
+		_set_state(State.WALL_CLIMB)
+
 	elif _down_held or _stamina_exhausted:
-		velocity.y = 80.0   # small downward nudge so the player clears the ledge edge
+		# Down without grip, or stamina exhausted → drop off the ledge.
+		velocity.y = 80.0
+		_ledge_grab_cooldown = 0.25   # still block re-grab while falling past
 		_set_state(State.FALL)
 
 # ---------------------------------------------------------------------------
@@ -713,12 +732,32 @@ func _tick_timers(delta: float) -> void:
 	else:
 		_wall_coyote_timer = maxf(_wall_coyote_timer - delta, 0.0)
 
-	_jump_buffer_timer = maxf(_jump_buffer_timer - delta, 0.0)
+	_jump_buffer_timer      = maxf(_jump_buffer_timer      - delta, 0.0)
+	_ledge_grab_cooldown    = maxf(_ledge_grab_cooldown    - delta, 0.0)
 
 	# Cooldown only prevents rapid re-dashing — it no longer restores air dashes.
 	# Air dashes restore exclusively on landing (see _on_landed).
 	_dash_cooldown_timer = maxf(_dash_cooldown_timer - delta, 0.0)
 	# _dash_timer is ticked inside _process_dash() so it only runs while dashing.
+
+# ---------------------------------------------------------------------------
+# WALL HELPER
+# Returns true only if the player is touching a non-player wall surface.
+# is_on_wall() alone returns true when leaning on another CharacterBody2D
+# (i.e. another player), which would let players climb each other.
+# get_slide_collision() lets us inspect the actual collider and skip Players.
+# ---------------------------------------------------------------------------
+func _is_on_climbable_wall() -> bool:
+	if not is_on_wall():
+		return false
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		if col.get_collider() is Player:
+			continue
+		# A wall contact has a predominantly horizontal normal (|x| > |y|).
+		if abs(col.get_normal().x) > abs(col.get_normal().y):
+			return true
+	return false
 
 # ---------------------------------------------------------------------------
 # STATE UPDATER
@@ -735,8 +774,16 @@ func _update_state() -> void:
 	if state == State.LEDGE_HANG or state == State.LEDGE_CLIMB:
 		return
 
+	# Evaluated in both branches below, so defined once here.
+	var can_grip := wall_climb_enabled and not _stamina_exhausted and _stamina > 0.0
+
 	if is_on_floor():
-		if _down_held and _input_x != 0.0:
+		# Wall climb takes priority even from the ground — if the player is
+		# standing against a wall, holding grip, and has stamina, let them
+		# transition directly into the climb without needing to jump first.
+		if _is_on_climbable_wall() and _grip_held and can_grip:
+			_set_state(State.WALL_CLIMB)
+		elif _down_held and _input_x != 0.0:
 			_set_state(State.CRAWL)
 		elif _down_held:
 			_set_state(State.DUCK)
@@ -745,24 +792,22 @@ func _update_state() -> void:
 		else:
 			_set_state(State.IDLE)
 	else:
-		# Shorthand: can the player use grip-based mechanics right now?
-		var can_grip := wall_climb_enabled and not _stamina_exhausted and _stamina > 0.0
-
 		# 1. LEDGE HANG — highest priority, checked before wall climb.
 		#    If the lower ray hits a wall but the upper ray is clear, a grabbable
 		#    ledge is present. This must beat wall climb so the player can't
 		#    climb straight past a ledge with grip held.
-		if can_grip and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
+		if can_grip and _ledge_grab_cooldown <= 0.0 \
+				and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
 			_set_state(State.LEDGE_HANG)
 
-		# 2. WALL CLIMB — grip held + on wall, no ledge in the way.
-		elif is_on_wall() and _grip_held and can_grip:
+		# 2. WALL CLIMB — grip held + on climbable wall, no ledge in the way.
+		elif _is_on_climbable_wall() and _grip_held and can_grip:
 			_set_state(State.WALL_CLIMB)
 
-		# 3. WALL SLIDE — falling + pressing toward the wall (no grip needed).
+		# 3. WALL SLIDE — falling + pressing toward a climbable wall (no grip needed).
 		else:
 			var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
-			if is_on_wall() and velocity.y > 0.0 and pressing_into_wall:
+			if _is_on_climbable_wall() and velocity.y > 0.0 and pressing_into_wall:
 				_set_state(State.WALL_SLIDE)
 			elif velocity.y < 0.0:
 				_set_state(State.JUMP)
@@ -794,6 +839,18 @@ func _set_state(new_state: State) -> void:
 			state = new_state
 			return
 	state = new_state
+	# Swap collision capsules whenever state changes.
+	# Duck uses a shorter capsule (top half removed); all other states use the full one.
+	_collision_stand.disabled = (state == State.DUCK)
+	_collision_duck.disabled  = (state != State.DUCK)
+	# If debug mode has made either shape visible, keep visibility in sync with
+	# the active/inactive state so only the physics-active capsule is shown.
+	var debug_on := _collision_stand.visible or _collision_duck.visible
+	if debug_on:
+		_collision_stand.visible = not _collision_stand.disabled
+		_collision_duck.visible  = not _collision_duck.disabled
+		_collision_stand.queue_redraw()
+		_collision_duck.queue_redraw()
 	match state:
 		State.IDLE:        _sprite.play("Idle")
 		State.RUN:         _sprite.play("Run")

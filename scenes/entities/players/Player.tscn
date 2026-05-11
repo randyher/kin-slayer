@@ -12,6 +12,9 @@
 [ext_resource type="Texture2D" uid="uid://cs6o2pvboh0ua" path="res://assets/sprites/players/p1/ClimbIdle/ClimbIdle05.png" id="ci5"]
 [ext_resource type="Texture2D" uid="uid://33lmbavlqw8x" path="res://assets/sprites/players/p1/ClimbIdle/ClimbIdle06.png" id="ci6"]
 [ext_resource type="Texture2D" uid="uid://div1kx8psf78" path="res://assets/sprites/players/p1/ClimbIdle/ClimbIdle07.png" id="ci7"]
+[ext_resource type="Texture2D" uid="uid://cvogewxa53apm" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare01.png" id="cjp1"]
+[ext_resource type="Texture2D" uid="uid://d1kx28ea8y4x6" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare02.png" id="cjp2"]
+[ext_resource type="Texture2D" uid="uid://6bbultlimags" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare03.png" id="cjp3"]
 [ext_resource type="Texture2D" uid="uid://753w2yphrjco" path="res://assets/sprites/players/p1/ClimbLeft/ClimbLeft01.png" id="cll1"]
 [ext_resource type="Texture2D" uid="uid://cgyyfo0d2lkmj" path="res://assets/sprites/players/p1/ClimbLeft/ClimbLeft02.png" id="cll2"]
 [ext_resource type="Texture2D" uid="uid://dyaln2fsi8byg" path="res://assets/sprites/players/p1/ClimbLeft/ClimbLeft03.png" id="cll3"]
@@ -170,9 +173,6 @@
 [ext_resource type="Texture2D" uid="uid://urekosoitu6b" path="res://assets/sprites/players/p1/WallSlide/WallSlide04.png" id="wsl4"]
 [ext_resource type="Texture2D" uid="uid://q78b21lbay5m" path="res://assets/sprites/players/p1/WallSlide/WallSlide05.png" id="wsl5"]
 [ext_resource type="Texture2D" uid="uid://cmjkr7guq46b1" path="res://assets/sprites/players/p1/WallSlide/WallSlide06.png" id="wsl6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare01.png" id="cjp1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare02.png" id="cjp2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/ClimbJumpPrepare/ClimbJumpPrepare03.png" id="cjp3"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_anim"]
 animations = [{
@@ -218,6 +218,20 @@ animations = [{
 "loop": true,
 "name": &"ClimbIdle",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("cjp1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cjp2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("cjp3")
+}],
+"loop": true,
+"name": &"ClimbJumpPrepare",
+"speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -276,20 +290,6 @@ animations = [{
 "loop": true,
 "name": &"ClimbRight",
 "speed": 10.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": ExtResource("cjp1")
-}, {
-"duration": 1.0,
-"texture": ExtResource("cjp2")
-}, {
-"duration": 1.0,
-"texture": ExtResource("cjp3")
-}],
-"loop": true,
-"name": &"ClimbJumpPrepare",
-"speed": 5.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -851,6 +851,7 @@ size = Vector2(14, 0)
 
 [node name="Player" type="CharacterBody2D" unique_id=442864075]
 script = ExtResource("1_k3m7n")
+stamina_max = 60.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=368623655]
 sprite_frames = SubResource("SpriteFrames_anim")

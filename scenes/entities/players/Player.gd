@@ -591,7 +591,17 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 	# Override all velocity — the player is locked to the ledge.
 	velocity = Vector2.ZERO
 
-	if _up_pressed:
+	if _jump_pressed:
+		# Wall jump away from the ledge. _last_wall_normal is cached from the
+		# wall contact that preceded the hang; fall back to facing direction if
+		# somehow zero (e.g. player jumped directly onto the ledge).
+		if _last_wall_normal == Vector2.ZERO:
+			_last_wall_normal = Vector2(-float(_facing_direction), 0.0)
+		_ledge_grab_cooldown = 0.25
+		_start_wall_jump()
+		return
+
+	elif _up_pressed:
 		_ledge_hang_position = global_position   # save for climb-up offset
 		_set_state(State.LEDGE_CLIMB)
 

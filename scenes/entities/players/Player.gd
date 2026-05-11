@@ -92,6 +92,16 @@ signal player_died
 ## Whether wall jumping resets the air dash counter.
 @export var wall_jump_refreshes_dash: bool = false
 
+@export_group("Ledge")
+## Seconds after the ledge raycasts stop detecting a grabbable ledge during which
+## the grab can still fire.  Mirrors floor coyote time — forgives the player drifting
+## a frame or two past the ledge edge before the grab registers.
+@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_coyote_time: float = 0.10
+## Seconds after the ledge raycasts first detect a grabbable ledge during which
+## the grab will fire the moment can_grip becomes true.  Forgives briefly exhausted
+## stamina or an active cooldown at the exact frame the ledge is passed.
+@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_grab_buffer_time: float = 0.10
+
 @export_group("Stamina")
 ## Total stamina pool. Drains while climbing or hanging; refills when resting.
 @export_range(0.0, 200.0, 5.0) var stamina_max: float = 90.0
@@ -118,6 +128,13 @@ signal player_died
 ## Increase to make the hands appear higher on the ledge edge.
 @export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 5.0
 
+# HoldGrabMode must be declared before the @export below uses it as a type.
+# GDScript resolves @export type annotations at parse time — forward references fail.
+enum HoldGrabMode {
+	OVERLAP_THEN_PRESS,   # hold grip while overlapping a zone → grab
+	PRESS_THEN_OVERLAP    # press grip first, then enter the zone → grab
+}
+
 @export_group("Background Holds")
 ## Set to false to disable the entire background-hold system with one toggle.
 @export var background_holds_enabled: bool = true
@@ -137,17 +154,6 @@ signal player_died
 @export var air_dash_allowed: bool = true
 ## How many air dashes are available before landing is required to reset them.
 @export_range(0, 5, 1) var air_dashes_allowed: int = 1
-
-# ---------------------------------------------------------------------------
-# BACKGROUND HOLDS — GRAB MODE ENUM
-# Determines when grabbing a background hold is triggered.
-# OVERLAP_THEN_PRESS: player enters the zone first, then presses grip → grab.
-# PRESS_THEN_OVERLAP: player presses grip first, then enters a zone → grab.
-# ---------------------------------------------------------------------------
-enum HoldGrabMode {
-	OVERLAP_THEN_PRESS,   # most common feel — hold grip while overlapping
-	PRESS_THEN_OVERLAP    # anticipatory feel — commit to grab before touching
-}
 
 # ---------------------------------------------------------------------------
 # STATE MACHINE
@@ -228,6 +234,21 @@ var _ledge_hang_position: Vector2 = Vector2.ZERO
 # Counts down after leaving a ledge hang so the ledge raycasts can't
 # immediately re-grab the same ledge on the very next frame.
 var _ledge_grab_cooldown: float = 0.0
+
+# Ledge coyote — mirrors _coyote_timer but for ledge detection.
+# Fed fresh every frame the raycasts see a valid ledge; decays afterward.
+# While > 0, a grab can fire even if the raycasts no longer hit.
+var _ledge_coyote_timer: float = 0.0
+
+# Ledge grab buffer — set whenever raycasts see a valid ledge.
+# While > 0, the grab fires the moment can_grip becomes true, even if the
+# raycasts have since lost sight of the ledge.
+var _ledge_grab_buffer_timer: float = 0.0
+
+# Player Y recorded every frame the ledge raycasts detect a valid ledge.
+# Used to snap to the correct hang height even when the grab fires during
+# the coyote or buffer window (when the player has drifted below detection).
+var _ledge_detected_y: float = 0.0
 
 # ---------------------------------------------------------------------------
 # BACKGROUND HOLDS
@@ -630,7 +651,7 @@ func _process_hang_move(input: Vector2, _delta: float) -> void:
 	var bh := _current_hold as BackgroundHold
 	if bh:
 		var half := bh.hold_width * 0.5
-		var cx   := _current_hold.global_position.x
+		var cx   := bh.global_position.x
 		global_position.x = clampf(global_position.x, cx - half, cx + half)
 
 	velocity.x = input.x * hang_move_speed
@@ -688,7 +709,7 @@ func _try_grab_hold() -> void:
 
 	# Snap so the player hangs below the hold centre.
 	# 20 px puts the player's hands at roughly the hold bar position.
-	global_position.y = _current_hold.global_position.y + 20.0
+	global_position.y = (_current_hold as Node2D).global_position.y + 20.0
 
 	velocity = Vector2.ZERO
 	_set_state(State.HANG_IDLE)
@@ -967,6 +988,21 @@ func _tick_timers(delta: float) -> void:
 	_jump_buffer_timer      = maxf(_jump_buffer_timer      - delta, 0.0)
 	_ledge_grab_cooldown    = maxf(_ledge_grab_cooldown    - delta, 0.0)
 
+	# Ledge coyote and grab buffer — both fed from the same raycast snapshot.
+	# Coyote: mirrors floor coyote — stays fresh while ledge is visible, then
+	#         decays, giving a short window to grab after drifting past the edge.
+	# Buffer: also set while ledge is visible so the grab fires the moment
+	#         can_grip becomes true, even if raycasts have since lost the ledge.
+	var _ledge_in_range := (_ledge_check_lower.is_colliding()
+							and not _ledge_check_upper.is_colliding())
+	if _ledge_in_range:
+		_ledge_coyote_timer      = ledge_coyote_time
+		_ledge_grab_buffer_timer = ledge_grab_buffer_time
+		_ledge_detected_y        = global_position.y   # freeze the ideal hang height
+	else:
+		_ledge_coyote_timer      = maxf(_ledge_coyote_timer      - delta, 0.0)
+		_ledge_grab_buffer_timer = maxf(_ledge_grab_buffer_timer - delta, 0.0)
+
 	# Cooldown only prevents rapid re-dashing — it no longer restores air dashes.
 	# Air dashes restore exclusively on landing (see _on_landed).
 	_dash_cooldown_timer = maxf(_dash_cooldown_timer - delta, 0.0)
@@ -1030,7 +1066,7 @@ func _update_state() -> void:
 		#    ledge is present. This must beat wall climb so the player can't
 		#    climb straight past a ledge with grip held.
 		if can_grip and _ledge_grab_cooldown <= 0.0 \
-				and _ledge_check_lower.is_colliding() and not _ledge_check_upper.is_colliding():
+				and (_ledge_coyote_timer > 0.0 or _ledge_grab_buffer_timer > 0.0):
 			_set_state(State.LEDGE_HANG)
 
 		# 2. WALL CLIMB — grip held + on climbable wall, no ledge in the way.
@@ -1096,7 +1132,10 @@ func _set_state(new_state: State) -> void:
 		State.WALL_SLIDE:  _sprite.play("WallSlide")
 		State.WALL_CLIMB:  _sprite.play("WallClimb")   # _process_wall_climb updates this each frame
 		State.LEDGE_HANG:
-			global_position.y -= ledge_hang_snap_up   # nudge up so hands sit on the ledge edge
+			# Snap to the Y recorded when the raycasts first saw the ledge, then
+			# apply the visual nudge.  This keeps the hang height consistent whether
+			# the grab fired immediately or via the coyote / buffer window.
+			global_position.y = _ledge_detected_y - ledge_hang_snap_up
 			_sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
 		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
 		State.HANG_IDLE:

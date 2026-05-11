@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+; BackgroundHold.tscn
+; Duplicate this scene per hold in your level.
+; Adjust hold_width and hold_type in the Inspector.
+;
+; collision_layer = 2  → HoldZone lives on layer 2 so Player.HoldDetector
+;                        (mask = 2) can detect it via area_entered.
+; collision_mask  = 1  → HoldZone also detects player bodies on layer 1
+;                        so player_grabbed / player_released signals fire.
+
+[ext_resource type="Script" path="res://scripts/components/BackgroundHold.gd" id="1_bgh"]
+
+[sub_resource type="RectangleShape2D" id="HoldShape"]
+size = Vector2(64, 16)
+
+[node name="BackgroundHold" type="Node2D"]
+script = ExtResource("1_bgh")
+
+; HoldZone — the grabbable collision area.
+; layer 2 + mask 1 lets it be found by HoldDetector AND detect player bodies.
+[node name="HoldZone" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 1
+monitoring = true
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HoldZone"]
+shape = SubResource("HoldShape")

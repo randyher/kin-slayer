@@ -102,6 +102,8 @@ signal player_died
 ## Stamina drained per second while idle-hanging on a ledge (LedgeHangIdle loop).
 ## Only applies when ledge_hang_idle_drains_stamina is true.
 @export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_ledge_hang_idle: float = 4.0
+## Stamina drained per second while hanging on a background hold (HANG_IDLE or HANG_MOVE).
+@export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_drain_hang: float = 6.0
 ## Stamina recovered per second while not gripping.
 @export_range(0.0, 50.0, 0.5, "suffix:units/s") var stamina_regen_rate: float = 15.0
 ## Seconds of rest before stamina starts recovering after the last drain.
@@ -116,6 +118,14 @@ signal player_died
 ## Increase to make the hands appear higher on the ledge edge.
 @export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 5.0
 
+@export_group("Background Holds")
+## Set to false to disable the entire background-hold system with one toggle.
+@export var background_holds_enabled: bool = true
+## Determines when grabbing triggers — see HoldGrabMode enum for details.
+@export var hold_grab_mode: HoldGrabMode = HoldGrabMode.OVERLAP_THEN_PRESS
+## Horizontal speed while moving along a background hold.
+@export_range(0.0, 300.0, 5.0, "suffix:px/s") var hang_move_speed: float = 80.0
+
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
 @export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 380.0
@@ -129,11 +139,22 @@ signal player_died
 @export_range(0, 5, 1) var air_dashes_allowed: int = 1
 
 # ---------------------------------------------------------------------------
+# BACKGROUND HOLDS — GRAB MODE ENUM
+# Determines when grabbing a background hold is triggered.
+# OVERLAP_THEN_PRESS: player enters the zone first, then presses grip → grab.
+# PRESS_THEN_OVERLAP: player presses grip first, then enters a zone → grab.
+# ---------------------------------------------------------------------------
+enum HoldGrabMode {
+	OVERLAP_THEN_PRESS,   # most common feel — hold grip while overlapping
+	PRESS_THEN_OVERLAP    # anticipatory feel — commit to grab before touching
+}
+
+# ---------------------------------------------------------------------------
 # STATE MACHINE
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -157,6 +178,9 @@ var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravi
 ## CollisionShapeDuck.position.y in Player.tscn.
 @onready var _collision_stand    : CollisionShape2D = $CollisionShape2D
 @onready var _collision_duck     : CollisionShape2D = $CollisionShapeDuck
+## Area2D that detects overlapping BackgroundHold zones.
+## Collision mask = 2 matches BackgroundHold.HoldZone's collision_layer = 2.
+@onready var _hold_detector      : Area2D           = $HoldDetector
 
 ## Which horizontal direction the player is facing: +1 = right, -1 = left.
 ## Used when dashing with no directional input (dash "forward").
@@ -205,6 +229,25 @@ var _ledge_hang_position: Vector2 = Vector2.ZERO
 # immediately re-grab the same ledge on the very next frame.
 var _ledge_grab_cooldown: float = 0.0
 
+# ---------------------------------------------------------------------------
+# BACKGROUND HOLDS
+# ---------------------------------------------------------------------------
+# The BackgroundHold node the player is currently hanging from, or null.
+var _current_hold      : Node  = null
+
+# The HoldType of the current hold (cached from _current_hold.hold_type on grab).
+# Stored as int so Player.gd doesn't depend on BackgroundHold's enum at runtime.
+# -1 = no hold.
+var _current_hold_type : int   = -1
+
+# All BackgroundHold zones currently overlapping HoldDetector.
+# Populated by _on_hold_area_entered / _on_hold_area_exited.
+var _overlapping_holds : Array = []
+
+# Used by PRESS_THEN_OVERLAP mode: set true when grip is pressed in open air,
+# cleared when grip is released.  A zone entry while this is true grabs immediately.
+var _grip_pressed_before_overlap : bool = false
+
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
 # Mirrors _coyote_timer exactly, but for walls instead of floors.
@@ -228,6 +271,11 @@ func _ready() -> void:
 	# then emit so the HUD initialises correctly the moment it connects.
 	current_hp = clampi(current_hp, 0, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+	# Connect HoldDetector so the player knows when it overlaps a hold zone.
+	# area_entered / area_exited fire when a BackgroundHold.HoldZone (Area2D)
+	# enters or leaves the player's detection area.
+	_hold_detector.area_entered.connect(_on_hold_area_entered)
+	_hold_detector.area_exited.connect(_on_hold_area_exited)
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -245,6 +293,22 @@ func _physics_process(delta: float) -> void:
 	# --- Tick all timers and stamina ---
 	_tick_timers(delta)
 	_tick_stamina(delta)
+
+	# --- Background hold grab logic ---
+	# OVERLAP_THEN_PRESS: grab whenever grip is held while inside a hold zone.
+	if background_holds_enabled \
+			and hold_grab_mode == HoldGrabMode.OVERLAP_THEN_PRESS \
+			and _grip_held \
+			and not _overlapping_holds.is_empty() \
+			and state != State.HANG_IDLE and state != State.HANG_MOVE:
+		_try_grab_hold()
+
+	# PRESS_THEN_OVERLAP: track whether grip was pressed before entering a zone.
+	if hold_grab_mode == HoldGrabMode.PRESS_THEN_OVERLAP:
+		if _grip_just_pressed:
+			_grip_pressed_before_overlap = true
+		elif not _grip_held:
+			_grip_pressed_before_overlap = false
 
 	# --- Run the logic for whichever state is currently active ---
 	match state:
@@ -264,6 +328,10 @@ func _physics_process(delta: float) -> void:
 			_process_ledge_hang(input, delta)
 		State.LEDGE_CLIMB:
 			_process_ledge_climb(input, delta)
+		State.HANG_IDLE:
+			_process_hang_idle(input, delta)
+		State.HANG_MOVE:
+			_process_hang_move(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
 
@@ -275,8 +343,11 @@ func _physics_process(delta: float) -> void:
 		_on_landed()
 
 	# --- Update facing direction and flip sprite to match ---
-	# Locked during ledge hang/climb so the player can't spin around mid-hang.
-	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB)
+	# Locked during ledge hang/climb AND background hang states.
+	# Back-view Climb animations look correct regardless of direction,
+	# so we freeze flip_h to prevent a jarring mirror on direction change.
+	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB
+						 or state == State.HANG_IDLE or state == State.HANG_MOVE)
 	if input.x != 0 and not ledge_locked:
 		_facing_direction = int(sign(input.x))
 	_sprite.flip_h = _facing_direction == -1
@@ -311,8 +382,10 @@ var _jump_held: bool = false
 var _dash_pressed: bool = false
 var _down_held: bool = false
 ## Grip button — universal "maintain contact" action (p1_grip / p2_grip).
-## Used for wall climbing, ledge hanging, and future interactions.
+## Used for wall climbing, ledge hanging, background holds, and future interactions.
 var _grip_held: bool = false
+## True only on the frame grip is first pressed — used by PRESS_THEN_OVERLAP mode.
+var _grip_just_pressed: bool = false
 ## Dedicated up input (p1_up / p2_up).
 ## Used to climb up a wall and to pull up from a ledge hang.
 ## Kept separate from jump so up and jump can be used interchangeably
@@ -330,19 +403,21 @@ func _get_input() -> Vector2:
 		_jump_held    = Input.is_action_pressed("p1_jump")
 		_dash_pressed = Input.is_action_just_pressed("p1_dash")
 		_down_held    = Input.is_action_pressed("p1_down")
-		_grip_held    = Input.is_action_pressed("p1_grip")
-		_up_pressed   = Input.is_action_just_pressed("p1_up")
-		_up_held      = Input.is_action_pressed("p1_up")
+		_grip_held         = Input.is_action_pressed("p1_grip")
+		_grip_just_pressed = Input.is_action_just_pressed("p1_grip")
+		_up_pressed        = Input.is_action_just_pressed("p1_up")
+		_up_held           = Input.is_action_pressed("p1_up")
 	else:
 		if Input.is_action_pressed("p2_right"):      dir.x += 1
 		if Input.is_action_pressed("p2_left"):       dir.x -= 1
-		_jump_pressed = Input.is_action_just_pressed("p2_jump")
-		_jump_held    = Input.is_action_pressed("p2_jump")
-		_dash_pressed = Input.is_action_just_pressed("p2_dash")
-		_down_held    = Input.is_action_pressed("p2_down")
-		_grip_held    = Input.is_action_pressed("p2_grip")
-		_up_pressed   = Input.is_action_just_pressed("p2_up")
-		_up_held      = Input.is_action_pressed("p2_up")
+		_jump_pressed      = Input.is_action_just_pressed("p2_jump")
+		_jump_held         = Input.is_action_pressed("p2_jump")
+		_dash_pressed      = Input.is_action_just_pressed("p2_dash")
+		_down_held         = Input.is_action_pressed("p2_down")
+		_grip_held         = Input.is_action_pressed("p2_grip")
+		_grip_just_pressed = Input.is_action_just_pressed("p2_grip")
+		_up_pressed        = Input.is_action_just_pressed("p2_up")
+		_up_held           = Input.is_action_pressed("p2_up")
 
 	_input_x = dir.x
 	return dir
@@ -505,6 +580,158 @@ func _process_ledge_climb(_input: Vector2, _delta: float) -> void:
 	velocity = Vector2.ZERO   # stay frozen while the climb animation plays
 
 # ---------------------------------------------------------------------------
+# HANG IDLE  (gripping a background hold, not moving laterally)
+# Player floats in place at the hold position.  Stamina drains via _tick_stamina.
+# Grip release → FALL.  Jump → launch straight up.  Horizontal input → HANG_MOVE.
+# Stamina exhaustion → FALL with a downward boost.
+# ---------------------------------------------------------------------------
+func _process_hang_idle(_input: Vector2, _delta: float) -> void:
+	velocity = Vector2.ZERO   # freeze in place — no gravity on a hold
+
+	if _stamina_exhausted:
+		# Grip gave out — drop the player off the hold.
+		_release_hold()
+		velocity.y = 80.0
+		_set_state(State.FALL)
+		return
+
+	if not _grip_held:
+		# Player let go of the grip button voluntarily.
+		_release_hold()
+		_set_state(State.FALL)
+		return
+
+	if _jump_pressed:
+		# Jump straight up — no wall to push off, so normal_x = 0.
+		# Reuses _start_wall_jump() with _last_wall_normal = ZERO so the
+		# horizontal kick is 0 and the player launches vertically.
+		# See _start_wall_jump() for the full launch logic.
+		_release_hold()
+		_last_wall_normal = Vector2.ZERO
+		_start_wall_jump()
+		return
+
+	if _input_x != 0.0:
+		_set_state(State.HANG_MOVE)
+
+# ---------------------------------------------------------------------------
+# HANG MOVE  (gripping a background hold, moving laterally)
+# Moves along the hold width, clamped to ± hold_width/2 from the hold centre.
+# Uses ClimbLeft / ClimbRight animations based on direction.
+# Same release conditions as HANG_IDLE.
+# ---------------------------------------------------------------------------
+func _process_hang_move(input: Vector2, _delta: float) -> void:
+	if _current_hold == null:
+		# Hold disappeared — fall cleanly.
+		_set_state(State.FALL)
+		return
+
+	# Clamp position at the start of each frame to catch edge overshoot.
+	var bh := _current_hold as BackgroundHold
+	if bh:
+		var half := bh.hold_width * 0.5
+		var cx   := _current_hold.global_position.x
+		global_position.x = clampf(global_position.x, cx - half, cx + half)
+
+	velocity.x = input.x * hang_move_speed
+	velocity.y = 0.0   # no gravity while hanging
+
+	# Play the correct back-view animation — no sprite flip in HANG states.
+	# FUTURE — when HoldType.ROPE is active, use MonkeyBarsClimb here instead.
+	# See BackgroundHold.HoldType.ROPE for context.
+	if input.x < 0.0:
+		if _sprite.animation != &"ClimbLeft":
+			_sprite.play("ClimbLeft")
+	elif input.x > 0.0:
+		if _sprite.animation != &"ClimbRight":
+			_sprite.play("ClimbRight")
+
+	if _stamina_exhausted:
+		_release_hold()
+		velocity.y = 80.0
+		_set_state(State.FALL)
+		return
+
+	if not _grip_held:
+		_release_hold()
+		_set_state(State.FALL)
+		return
+
+	if _jump_pressed:
+		_release_hold()
+		_last_wall_normal = Vector2.ZERO
+		_start_wall_jump()
+		return
+
+	if _input_x == 0.0:
+		_set_state(State.HANG_IDLE)
+
+# ---------------------------------------------------------------------------
+# TRY GRAB HOLD
+# Called when grab conditions are met (overlap + correct input mode).
+# Snaps the player 20 px below the hold centre and enters HANG_IDLE.
+# ---------------------------------------------------------------------------
+func _try_grab_hold() -> void:
+	if not background_holds_enabled:
+		return
+	if _overlapping_holds.is_empty():
+		return
+	if _stamina_exhausted or _stamina <= 0.0:
+		return
+
+	# Grab the first overlapping hold zone and get the BackgroundHold parent.
+	var hold_area := _overlapping_holds[0] as Area2D
+	_current_hold      = hold_area.get_parent()   # BackgroundHold Node2D
+	var bh := _current_hold as BackgroundHold
+	if bh:
+		_current_hold_type = bh.hold_type         # cache for future ROPE logic
+
+	# Snap so the player hangs below the hold centre.
+	# 20 px puts the player's hands at roughly the hold bar position.
+	global_position.y = _current_hold.global_position.y + 20.0
+
+	velocity = Vector2.ZERO
+	_set_state(State.HANG_IDLE)
+
+# ---------------------------------------------------------------------------
+# RELEASE HOLD
+# Clears hold tracking and starts the stamina regen delay.
+# The caller is responsible for setting the new state (FALL, JUMP, etc.).
+# ---------------------------------------------------------------------------
+func _release_hold() -> void:
+	_current_hold      = null
+	_current_hold_type = -1
+	# Start regen delay so stamina doesn't recover instantly after dropping.
+	_stamina_regen_timer = stamina_regen_delay
+
+# ---------------------------------------------------------------------------
+# HOLD DETECTOR CALLBACKS
+# Fired by HoldDetector (Area2D) when it overlaps a BackgroundHold.HoldZone.
+# ---------------------------------------------------------------------------
+
+func _on_hold_area_entered(area: Area2D) -> void:
+	# Only care about areas that belong to background holds.
+	if not area.is_in_group("background_holds"):
+		return
+
+	_overlapping_holds.append(area)
+
+	# PRESS_THEN_OVERLAP: if grip was pressed before entering this zone, grab now.
+	if background_holds_enabled \
+			and hold_grab_mode == HoldGrabMode.PRESS_THEN_OVERLAP \
+			and _grip_pressed_before_overlap \
+			and state != State.HANG_IDLE and state != State.HANG_MOVE:
+		_try_grab_hold()
+
+func _on_hold_area_exited(area: Area2D) -> void:
+	_overlapping_holds.erase(area)
+
+	# If we were hanging on this hold and it moved away or was deleted, drop.
+	if _current_hold != null and _current_hold == area.get_parent():
+		_release_hold()
+		_set_state(State.FALL)
+
+# ---------------------------------------------------------------------------
 # STAMINA TICKER
 # Called every physics frame from _physics_process (after _tick_timers).
 # Drains stamina while gripping, starts a regen delay when resting, then
@@ -514,7 +741,9 @@ func _tick_stamina(delta: float) -> void:
 	var prev_stamina := _stamina
 	var is_gripping  := (state == State.WALL_CLIMB
 						 or state == State.LEDGE_HANG
-						 or state == State.LEDGE_CLIMB)
+						 or state == State.LEDGE_CLIMB
+						 or state == State.HANG_IDLE
+						 or state == State.HANG_MOVE)
 
 	if is_gripping:
 		# Choose the drain rate for the current activity.
@@ -524,6 +753,9 @@ func _tick_stamina(delta: float) -> void:
 		elif state == State.LEDGE_HANG and _sprite.animation == &"LedgeHangIdle":
 			# Idle hang uses the lower drain rate — only if the toggle is on.
 			drain = stamina_drain_ledge_hang_idle if ledge_hang_idle_drains_stamina else 0.0
+		elif state == State.HANG_IDLE or state == State.HANG_MOVE:
+			# Background hold hanging — uses its own stamina_drain_hang rate.
+			drain = stamina_drain_hang
 		else:
 			# LedgeHang entry animation and LedgeClimb both use the active rate.
 			drain = stamina_drain_ledge_hang
@@ -769,9 +1001,10 @@ func _update_state() -> void:
 	if state == State.DASH and _dash_timer > 0.0:
 		return
 
-	# Ledge hang and climb are managed entirely by their own process functions
-	# and by _on_animation_finished — don't override them here.
-	if state == State.LEDGE_HANG or state == State.LEDGE_CLIMB:
+	# Ledge and background-hold states are managed entirely by their own
+	# process functions — don't let _update_state override them mid-hang.
+	if state == State.LEDGE_HANG or state == State.LEDGE_CLIMB \
+			or state == State.HANG_IDLE or state == State.HANG_MOVE:
 		return
 
 	# Evaluated in both branches below, so defined once here.
@@ -833,7 +1066,8 @@ func _set_state(new_state: State) -> void:
 	# LedgeClimb is included so the climb-up clip can never be interrupted.
 	var one_shot := (_sprite.animation == &"DoubleJump"
 					 or _sprite.animation == &"WallJump"
-					 or _sprite.animation == &"LedgeClimb")
+					 or _sprite.animation == &"LedgeClimb"
+					 or _sprite.animation == &"ClimbGrab")
 	if one_shot and _sprite.is_playing():
 		if new_state in [State.JUMP, State.FALL, State.WALL_SLIDE, State.WALL_CLIMB]:
 			state = new_state
@@ -865,6 +1099,16 @@ func _set_state(new_state: State) -> void:
 			global_position.y -= ledge_hang_snap_up   # nudge up so hands sit on the ledge edge
 			_sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
 		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
+		State.HANG_IDLE:
+			# ClimbGrab plays once on initial grab; _on_animation_finished hands off to ClimbIdle.
+			# Back-view animation — sprite is NOT flipped during any HANG state.
+			# FUTURE — when HoldType.ROPE is active, use MonkeyBarIdle here instead.
+			# See BackgroundHold.HoldType.ROPE for context.
+			_sprite.play("ClimbGrab")
+		State.HANG_MOVE:
+			# Direction-specific animation is set each frame inside _process_hang_move.
+			# Default to ClimbLeft; it will be corrected within one physics tick.
+			_sprite.play("ClimbLeft")
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
 # ---------------------------------------------------------------------------
@@ -888,6 +1132,14 @@ func _on_animation_finished() -> void:
 	# The grab animation plays once; afterwards the player idles on the ledge.
 	elif _sprite.animation == &"LedgeHang":
 		_sprite.play("LedgeHangIdle")
+
+	# ---- ClimbGrab (background hold entry) → ClimbIdle ----
+	# Mirrors the LedgeHang → LedgeHangIdle pattern exactly.
+	# ClimbGrab plays once when first grabbing a hold; ClimbIdle loops after.
+	# FUTURE — when HoldType.ROPE is active, transition to MonkeyBarIdle here.
+	# See BackgroundHold.HoldType.ROPE for context.
+	elif _sprite.animation == &"ClimbGrab":
+		_sprite.play("ClimbIdle")
 
 	# ---- LedgeClimb → IDLE ----
 	# The climb-up animation finishes; nudge the player onto the surface.

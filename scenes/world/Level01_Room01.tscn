@@ -1,6 +1,7 @@
 [gd_scene format=4 uid="uid://b4rnxbhjch0aa"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/Room.tscn" id="1_room_base"]
+[ext_resource type="PackedScene" path="res://scenes/entities/BackgroundHold.tscn" id="bgh_scene"]
 [ext_resource type="Texture2D" uid="uid://c1g7yhkjvmhqc" path="res://assets/tilesets/Bricks.png" id="2_bricks"]
 [ext_resource type="Texture2D" uid="uid://cat13vrljqjqa" path="res://assets/tilesets/Walls.png" id="3_walls"]
 [ext_resource type="Script" uid="uid://c8btyx3yyqoqx" path="res://scenes/world/Level01_Room01.gd" id="4_script"]
@@ -702,3 +703,9 @@ position = Vector2(0, -280)
 
 [node name="SpawnBottom" parent="." index="9"]
 position = Vector2(0, 280)
+
+; TEST HOLD — reposition or remove later
+[node name="TestHold" parent="." instance=ExtResource("bgh_scene")]
+position = Vector2(0, 100)
+hold_label = "Test Hold"
+hold_width = 128.0

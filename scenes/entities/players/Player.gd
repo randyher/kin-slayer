@@ -419,6 +419,21 @@ func _process_wall_climb(input: Vector2, delta: float) -> void:
 	# Gentle constant press into the wall so is_on_wall() stays true each frame.
 	velocity.x = float(_facing_direction) * 20.0
 
+	# Cache the wall normal every frame — same pattern as _process_wall_slide.
+	# This ensures _start_wall_jump() has a valid normal even if contact is lost
+	# on the exact frame the jump fires.
+	if is_on_wall():
+		_last_wall_normal = get_wall_normal()
+
+	# Jump while gripping the wall — delegates entirely to _start_wall_jump(),
+	# the same function used by wall slide.  It handles the launch velocity,
+	# WallJump animation, double-jump refresh, and coyote timer reset.
+	# Stamina drain stops naturally because _tick_stamina() checks state, and
+	# _start_wall_jump() sets state = JUMP before the next tick runs.
+	if _jump_pressed:
+		_start_wall_jump()
+		return
+
 	# Move up while up is held, down while down is held, or stay put.
 	if _up_held:
 		velocity.y = -wall_climb_speed

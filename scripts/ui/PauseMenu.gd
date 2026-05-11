@@ -45,8 +45,13 @@ func _ready() -> void:
 # get_viewport().set_input_as_handled() stops the event reaching the game.
 # ---------------------------------------------------------------------------
 func _input(event: InputEvent) -> void:
-	# ---- Pause / resume toggle (Escape) ----
-	if event.is_action_just_pressed("pause"):
+	# is_action_pressed() + not is_echo() is the correct "just pressed" check
+	# inside _input() in Godot 4.  is_action_just_pressed() only exists on
+	# the Input singleton, not on an InputEvent object.
+
+	# ---- Pause / resume toggle ----
+	if (event.is_action_pressed("p1_pause") or event.is_action_pressed("p2_pause")) \
+			and not event.is_echo():
 		if get_tree().paused:
 			_unpause()
 		else:
@@ -59,19 +64,22 @@ func _input(event: InputEvent) -> void:
 		return
 
 	# ---- Navigate up → Return ----
-	if event.is_action_just_pressed("p1_up") or event.is_action_just_pressed("p2_up"):
+	if (event.is_action_pressed("p1_up") or event.is_action_pressed("p2_up")) \
+			and not event.is_echo():
 		_selected = MenuItem.RETURN
 		_update_highlights()
 		get_viewport().set_input_as_handled()
 
 	# ---- Navigate down → Debug Mode ----
-	elif event.is_action_just_pressed("p1_down") or event.is_action_just_pressed("p2_down"):
+	elif (event.is_action_pressed("p1_down") or event.is_action_pressed("p2_down")) \
+			and not event.is_echo():
 		_selected = MenuItem.DEBUG_MODE
 		_update_highlights()
 		get_viewport().set_input_as_handled()
 
 	# ---- Confirm with jump ----
-	elif event.is_action_just_pressed("p1_jump") or event.is_action_just_pressed("p2_jump"):
+	elif (event.is_action_pressed("p1_jump") or event.is_action_pressed("p2_jump")) \
+			and not event.is_echo():
 		_confirm()
 		get_viewport().set_input_as_handled()
 
@@ -97,12 +105,31 @@ func _confirm() -> void:
 			_unpause()
 
 		MenuItem.DEBUG_MODE:
-			# Toggle physics collision shape outlines.
-			# get_tree().debug_collisions_hint draws the shapes Godot uses for
-			# physics — useful for tuning hitboxes and tile collision.
 			_debug_active = not _debug_active
-			get_tree().debug_collisions_hint = _debug_active
-			_update_highlights()   # refresh label text to show ON / OFF
+			_apply_debug_collisions(_debug_active)
+			_update_highlights()
+
+# ---------------------------------------------------------------------------
+# DEBUG COLLISION DISPLAY
+# ---------------------------------------------------------------------------
+# get_tree().debug_collisions_hint is the Godot-native toggle but does not
+# work in GL Compatibility mode (the project's current renderer).
+# Instead we walk the full scene tree and flip the visible flag on every
+# CollisionShape2D and CollisionPolygon2D node, which forces them to draw
+# their outlines via their own _draw() implementations.
+# Tile-map physics shapes are handled separately by debug_collisions_hint
+# (it still works for TileMapLayer in some builds).
+func _apply_debug_collisions(enabled: bool) -> void:
+	get_tree().debug_collisions_hint = enabled
+	_toggle_shape_nodes(get_tree().get_root(), enabled)
+
+func _toggle_shape_nodes(node: Node, enabled: bool) -> void:
+	if node is CollisionShape2D or node is CollisionPolygon2D:
+		var n2d := node as Node2D
+		n2d.visible = enabled
+		n2d.queue_redraw()   # force an immediate redraw so the change is instant
+	for child in node.get_children():
+		_toggle_shape_nodes(child, enabled)
 
 # ---------------------------------------------------------------------------
 # HIGHLIGHT LABELS

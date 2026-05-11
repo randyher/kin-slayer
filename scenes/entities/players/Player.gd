@@ -496,8 +496,9 @@ func _process_duck(input: Vector2, _delta: float) -> void:
 
 	if _jump_pressed or _jump_buffer_timer > 0.0:
 		_start_jump()
-	elif not _down_held:
+	elif not _down_held and _can_stand():
 		_set_state(State.IDLE)
+	# If down is released but ceiling blocks standing, stay ducked silently.
 
 # ---------------------------------------------------------------------------
 # CRAWL MOVEMENT
@@ -1118,6 +1119,20 @@ func _is_on_climbable_wall() -> bool:
 	return false
 
 # ---------------------------------------------------------------------------
+# STAND CHECK
+# Returns true if there is vertical clearance for the player to stand up.
+# Temporarily enables the standing shape and uses test_move to detect any
+# ceiling geometry that would block the transition from duck/crawl to IDLE/RUN.
+# ---------------------------------------------------------------------------
+func _can_stand() -> bool:
+	_collision_stand.disabled = false
+	_collision_duck.disabled  = true
+	var blocked := test_move(global_transform, Vector2.ZERO)
+	_collision_stand.disabled = true
+	_collision_duck.disabled  = false
+	return not blocked
+
+# ---------------------------------------------------------------------------
 # STATE UPDATER
 # Figures out which state the player should be in based on current conditions.
 # Only called after movement so velocity is already updated for this frame.
@@ -1147,10 +1162,17 @@ func _update_state() -> void:
 			_set_state(State.CRAWL)
 		elif _down_held:
 			_set_state(State.DUCK)
-		elif abs(velocity.x) > 1.0 and not is_on_wall():
-			_set_state(State.RUN)
 		else:
-			_set_state(State.IDLE)
+			# Released down — only stand if there is ceiling clearance.
+			# If a ceiling blocks standing, hold the crouched state until the
+			# player moves out from under it (classic game behaviour).
+			var crouched := (state == State.DUCK or state == State.CRAWL)
+			if crouched and not _can_stand():
+				_set_state(State.DUCK if _input_x == 0.0 else State.CRAWL)
+			elif abs(velocity.x) > 1.0 and not is_on_wall():
+				_set_state(State.RUN)
+			else:
+				_set_state(State.IDLE)
 	else:
 		# 1. LEDGE HANG — highest priority, checked before wall climb.
 		#    If the lower ray hits a wall but the upper ray is clear, a grabbable
@@ -1201,9 +1223,10 @@ func _set_state(new_state: State) -> void:
 			return
 	state = new_state
 	# Swap collision capsules whenever state changes.
-	# Duck uses a shorter capsule (top half removed); all other states use the full one.
-	_collision_stand.disabled = (state == State.DUCK)
-	_collision_duck.disabled  = (state != State.DUCK)
+	# Both DUCK and CRAWL use the short capsule so the player fits in low passages.
+	var is_crouched := (state == State.DUCK or state == State.CRAWL)
+	_collision_stand.disabled = is_crouched
+	_collision_duck.disabled  = not is_crouched
 	# If debug mode has made either shape visible, keep visibility in sync with
 	# the active/inactive state so only the physics-active capsule is shown.
 	var debug_on := _collision_stand.visible or _collision_duck.visible

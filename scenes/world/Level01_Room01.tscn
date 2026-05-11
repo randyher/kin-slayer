@@ -7,6 +7,13 @@
 [ext_resource type="Texture2D" uid="uid://b8prhjk36efsp" path="res://assets/tilesets/Props.png" id="5_ijdsj"]
 [ext_resource type="PackedScene" path="res://scenes/entities/BackgroundHold.tscn" id="bgh_scene"]
 
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-background.png" id="mc_bg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-sprites.png" id="mc_spr"]
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-tiles.png" id="mc_tiles"]
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/torch-anim-with-bg.png" id="torch_bg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/torch-anim.png" id="torch_fg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/water-anim.png" id="water"]
+
 [sub_resource type="TileSetAtlasSource" id="AtlasSource_bricks"]
 texture = ExtResource("2_bricks")
 0:0/0 = 0
@@ -654,6 +661,147 @@ size = Vector2(16, 648)
 [sub_resource type="RectangleShape2D" id="Shape_exit_h"]
 size = Vector2(1152, 16)
 
+
+; ── Magic Castle environment resources ──────────────────────────────────────
+
+; AtlasTextures: torch-with-bg (5 frames, 48x48 each)
+[sub_resource type="AtlasTexture" id="tbg_f0"]
+atlas = ExtResource("torch_bg")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="tbg_f1"]
+atlas = ExtResource("torch_bg")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="tbg_f2"]
+atlas = ExtResource("torch_bg")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="tbg_f3"]
+atlas = ExtResource("torch_bg")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="tbg_f4"]
+atlas = ExtResource("torch_bg")
+region = Rect2(192, 0, 48, 48)
+
+; AtlasTextures: torch foreground (5 frames, 16x32 each — adjust if frame size differs)
+[sub_resource type="AtlasTexture" id="tf_f0"]
+atlas = ExtResource("torch_fg")
+region = Rect2(0, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f1"]
+atlas = ExtResource("torch_fg")
+region = Rect2(16, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f2"]
+atlas = ExtResource("torch_fg")
+region = Rect2(32, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f3"]
+atlas = ExtResource("torch_fg")
+region = Rect2(48, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f4"]
+atlas = ExtResource("torch_fg")
+region = Rect2(64, 0, 16, 32)
+
+; AtlasTextures: water (4 frames, 32x32 each — vertical strip)
+[sub_resource type="AtlasTexture" id="wa_f0"]
+atlas = ExtResource("water")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f1"]
+atlas = ExtResource("water")
+region = Rect2(0, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f2"]
+atlas = ExtResource("water")
+region = Rect2(0, 64, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f3"]
+atlas = ExtResource("water")
+region = Rect2(0, 96, 32, 32)
+
+; SpriteFrames: wall torch with background (8 fps)
+[sub_resource type="SpriteFrames" id="sf_torch_bg"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("tbg_f0")
+}, {
+"duration": 1.0,
+"texture": SubResource("tbg_f1")
+}, {
+"duration": 1.0,
+"texture": SubResource("tbg_f2")
+}, {
+"duration": 1.0,
+"texture": SubResource("tbg_f3")
+}, {
+"duration": 1.0,
+"texture": SubResource("tbg_f4")
+}],
+"loop": true,
+"name": &"default",
+"speed": 8.0
+}]
+
+; SpriteFrames: foreground torch (8 fps)
+[sub_resource type="SpriteFrames" id="sf_torch_fg"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("tf_f0")
+}, {
+"duration": 1.0,
+"texture": SubResource("tf_f1")
+}, {
+"duration": 1.0,
+"texture": SubResource("tf_f2")
+}, {
+"duration": 1.0,
+"texture": SubResource("tf_f3")
+}, {
+"duration": 1.0,
+"texture": SubResource("tf_f4")
+}],
+"loop": true,
+"name": &"default",
+"speed": 8.0
+}]
+
+; SpriteFrames: water (8 fps)
+[sub_resource type="SpriteFrames" id="sf_water"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("wa_f0")
+}, {
+"duration": 1.0,
+"texture": SubResource("wa_f1")
+}, {
+"duration": 1.0,
+"texture": SubResource("wa_f2")
+}, {
+"duration": 1.0,
+"texture": SubResource("wa_f3")
+}],
+"loop": true,
+"name": &"default",
+"speed": 8.0
+}]
+
+; TileSet: Magic Castle tiles (16x16 source, scale 2x on the TileMapLayer = 32px world)
+[sub_resource type="TileSetAtlasSource" id="AtlasSource_mc"]
+texture = ExtResource("mc_tiles")
+texture_region_size = Vector2i(16, 16)
+
+[sub_resource type="TileSet" id="TileSet_mc"]
+tile_size = Vector2i(16, 16)
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("AtlasSource_mc")
+
 [node name="Room" unique_id=43142681 instance=ExtResource("1_room_base")]
 script = ExtResource("4_script")
 
@@ -708,3 +856,131 @@ position = Vector2(0, 280)
 position = Vector2(-92, 155)
 hold_label = "Test Hold"
 hold_width = 128.0
+
+; ── Magic Castle parallax background ────────────────────────────────────────
+; ParallaxBackground renders at CanvasLayer -100 by default — behind all
+; game nodes.  Adjust motion_scale per layer to tune the parallax depth feel.
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+; Layer 1 — deep background.  motion_mirroring tiles the 288px sprite every
+; 288px of camera movement so the background covers the full room seamlessly.
+; Tune motion_scale x/y to change how much the background drifts.
+[node name="BackgroundFar" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.1, 0.05)
+motion_mirroring = Vector2(288, 0)
+z_index = -20
+
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundFar"]
+; Scale to 2.25x so the 288px texture fills the 648px room height.
+; Increase scale to zoom in on the art; decrease to show more repetition.
+scale = Vector2(2.25, 2.25)
+texture = ExtResource("mc_bg")
+
+; Layer 2 — mid decorative sheet (gargoyles, curtains, frames).
+; Set region_rect in the editor to isolate individual sprite-sheet elements.
+[node name="BackgroundMid" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.3, 0.1)
+z_index = -10
+
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundMid"]
+; Displayed at 2x — full sprite sheet.  Crop with region_rect in the editor.
+scale = Vector2(2, 2)
+texture = ExtResource("mc_spr")
+
+; Layer 3 — wall-mounted torches.  Scrolls horizontally at 0.5x camera speed;
+; vertical is fixed (motion_scale.y = 0) so torches stay at wall height.
+[node name="TorchWalls" type="ParallaxLayer" parent="ParallaxBackground"]
+motion_scale = Vector2(0.5, 0.0)
+z_index = -5
+
+[node name="Torch1" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
+position = Vector2(-300, 0)
+sprite_frames = SubResource("sf_torch_bg")
+animation = &"default"
+autoplay = "default"
+
+[node name="Torch2" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
+position = Vector2(0, 0)
+sprite_frames = SubResource("sf_torch_bg")
+animation = &"default"
+autoplay = "default"
+
+[node name="Torch3" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
+position = Vector2(300, 0)
+sprite_frames = SubResource("sf_torch_bg")
+animation = &"default"
+autoplay = "default"
+
+; ── Foreground props ─────────────────────────────────────────────────────────
+; z_index 10 — renders in front of players (z ~5) and tiles (z ~0).
+; Foreground torches — add more props here as needed
+[node name="Foreground" type="Node2D" parent="."]
+z_index = 10
+
+[node name="Torch1" type="AnimatedSprite2D" parent="Foreground"]
+position = Vector2(-450, 100)
+sprite_frames = SubResource("sf_torch_fg")
+animation = &"default"
+autoplay = "default"
+
+[node name="Torch2" type="AnimatedSprite2D" parent="Foreground"]
+position = Vector2(450, 100)
+sprite_frames = SubResource("sf_torch_fg")
+animation = &"default"
+autoplay = "default"
+
+; ── Water ────────────────────────────────────────────────────────────────────
+; OPTIONAL — reposition or remove if room layout doesn't need water.
+; z_index -3 places it just behind the player but in front of parallax.
+[node name="Water" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, 280)
+z_index = -3
+sprite_frames = SubResource("sf_water")
+animation = &"default"
+autoplay = "default"
+
+; ── Magic Castle platform tiles ───────────────────────────────────────────────
+; Paint tiles manually in Godot editor:
+; Select Platforms → open TileMap tab at bottom of editor → paint platforms.
+; scale (2,2) matches existing TileMapLayer so 16px tiles = 32px world pixels.
+[node name="Platforms" type="TileMapLayer" parent="."]
+scale = Vector2(2, 2)
+z_index = 0
+tile_set = SubResource("TileSet_mc")
+
+; ── Atmosphere overlay ────────────────────────────────────────────────────────
+; CanvasLayer -1 renders behind the game world (layer 0) but in front of
+; the ParallaxBackground (layer -100).
+; Atmosphere overlay — adjust alpha for darker/lighter feel.
+[node name="Atmosphere" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="ColorRect" type="ColorRect" parent="Atmosphere"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 0.35)
+mouse_filter = 2
+
+; ── Torch point lights ────────────────────────────────────────────────────────
+; Torch light — requires CanvasItem lighting enabled in:
+;   Project Settings → Rendering → 2D → Use Canvas Group Lighting
+; Assign a radial gradient Texture2D to each PointLight2D in the Inspector
+; for the light shape — without a texture, no light is rendered.
+; Tune energy (0.8) and color for warmer/cooler flame feel.
+[node name="Lights" type="Node2D" parent="."]
+
+[node name="TorchLight1" type="PointLight2D" parent="Lights"]
+position = Vector2(-300, 0)
+color = Color(1.0, 0.7, 0.3, 1.0)
+energy = 0.8
+
+[node name="TorchLight2" type="PointLight2D" parent="Lights"]
+position = Vector2(0, 0)
+color = Color(1.0, 0.7, 0.3, 1.0)
+energy = 0.8
+
+[node name="TorchLight3" type="PointLight2D" parent="Lights"]
+position = Vector2(300, 0)
+color = Color(1.0, 0.7, 0.3, 1.0)
+energy = 0.8

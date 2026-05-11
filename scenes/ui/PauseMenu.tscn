@@ -1,0 +1,68 @@
+[gd_scene format=3]
+
+; PauseMenu.tscn
+; Instanced in World.tscn.  Escape toggles visibility and pauses the tree.
+;
+; process_mode = 3 (PROCESS_MODE_ALWAYS) on the root CanvasLayer lets the
+; script receive _input callbacks even while get_tree().paused = true.
+; Without this the menu could never be closed after pausing.
+
+[ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="1_pause"]
+
+; ---------------------------------------------------------------------------
+; ROOT — CanvasLayer sits above the game (layer 5) but below the fade
+; overlay (layer 10 on RoomCamera).
+; ---------------------------------------------------------------------------
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 5
+process_mode = 3
+script = ExtResource("1_pause")
+
+; Semi-transparent black overlay dims the game world behind the menu.
+; mouse_filter = 2 (IGNORE) keeps it from blocking raycasts; we use
+; keyboard/controller input only.
+[node name="Overlay" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.72)
+mouse_filter = 2
+
+; ---------------------------------------------------------------------------
+; MENU — VBoxContainer centred in the viewport via 0.5 anchors.
+; offset_left/right/top/bottom offset from that centre point.
+; ---------------------------------------------------------------------------
+[node name="Menu" type="VBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -60.0
+offset_right = 110.0
+offset_bottom = 60.0
+alignment = 1
+
+; Title — always white, not selectable.
+[node name="Title" type="Label" parent="Menu"]
+text = "PAUSED"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+
+; Spacer between title and items.
+[node name="Spacer" type="Control" parent="Menu"]
+custom_minimum_size = Vector2(0, 12)
+
+; Return — auto-highlighted white on open (script sets this in _pause()).
+[node name="LabelReturn" type="Label" parent="Menu"]
+text = "Return"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+
+; Debug Mode — dim gray until selected.
+[node name="LabelDebug" type="Label" parent="Menu"]
+text = "Debug Mode"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.45, 0.45, 0.45, 1)
+theme_override_font_sizes/font_size = 18

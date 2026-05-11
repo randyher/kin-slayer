@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://dp572jo7tdjvb" path="res://scenes/entities/players/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="4_pause"]
 
 [node name="World" type="Node2D"]
 
@@ -42,3 +43,7 @@ player_color = Color(0.3, 0.3, 0.45, 1)
 ; Player nodes add themselves to that group in their own _ready(),
 ; so no manual signal wiring is needed here.
 [node name="HUD" parent="." instance=ExtResource("3_hud")]
+
+; PauseMenu — Escape to open/close, jump button to confirm selection.
+; process_mode=ALWAYS on the CanvasLayer keeps it responsive while paused.
+[node name="PauseMenu" parent="." instance=ExtResource("4_pause")]

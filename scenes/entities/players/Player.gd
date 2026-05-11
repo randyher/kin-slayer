@@ -160,7 +160,7 @@ enum HoldGrabMode {
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE, HANG_EDGE }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -269,6 +269,14 @@ var _overlapping_holds : Array = []
 # cleared when grip is released.  A zone entry while this is true grabs immediately.
 var _grip_pressed_before_overlap : bool = false
 
+# Which edge the player is hanging from in HANG_EDGE: +1 = right, -1 = left.
+var _hang_edge_dir: int = 0
+
+# Counts down after the player drops off the end of a hold.
+# Blocks _try_grab_hold() so the player can't immediately re-grab the same
+# hold before move_and_slide() has had a chance to move them out of the zone.
+var _hold_grab_cooldown : float = 0.0
+
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
 # Mirrors _coyote_timer exactly, but for walls instead of floors.
@@ -321,7 +329,9 @@ func _physics_process(delta: float) -> void:
 			and hold_grab_mode == HoldGrabMode.OVERLAP_THEN_PRESS \
 			and _grip_held \
 			and not _overlapping_holds.is_empty() \
-			and state != State.HANG_IDLE and state != State.HANG_MOVE:
+			and _hold_grab_cooldown <= 0.0 \
+			and state != State.HANG_IDLE and state != State.HANG_MOVE \
+			and state != State.HANG_EDGE:
 		_try_grab_hold()
 
 	# PRESS_THEN_OVERLAP: track whether grip was pressed before entering a zone.
@@ -353,6 +363,8 @@ func _physics_process(delta: float) -> void:
 			_process_hang_idle(input, delta)
 		State.HANG_MOVE:
 			_process_hang_move(input, delta)
+		State.HANG_EDGE:
+			_process_hang_edge(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
 
@@ -368,10 +380,15 @@ func _physics_process(delta: float) -> void:
 	# Back-view Climb animations look correct regardless of direction,
 	# so we freeze flip_h to prevent a jarring mirror on direction change.
 	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB
-						 or state == State.HANG_IDLE or state == State.HANG_MOVE)
-	if input.x != 0 and not ledge_locked:
-		_facing_direction = int(sign(input.x))
-	_sprite.flip_h = _facing_direction == -1
+						 or state == State.HANG_IDLE or state == State.HANG_MOVE
+						 or state == State.HANG_EDGE)
+	if state == State.HANG_EDGE:
+		# ClimbJumpPrepare is a single animation — flip it for the right edge.
+		_sprite.flip_h = (_hang_edge_dir == -1)
+	else:
+		if input.x != 0 and not ledge_locked:
+			_facing_direction = int(sign(input.x))
+		_sprite.flip_h = _facing_direction == -1
 
 	# --- Update ledge detection raycasts ---
 	# Always cast toward the direction the player is currently facing.
@@ -616,6 +633,12 @@ func _process_hang_idle(_input: Vector2, _delta: float) -> void:
 		_set_state(State.FALL)
 		return
 
+	if _down_held:
+		_release_hold()
+		_hold_grab_cooldown = 0.15
+		_set_state(State.FALL)
+		return
+
 	if not _grip_held:
 		# Player let go of the grip button voluntarily.
 		_release_hold()
@@ -623,12 +646,12 @@ func _process_hang_idle(_input: Vector2, _delta: float) -> void:
 		return
 
 	if _jump_pressed:
-		# Jump straight up — no wall to push off, so normal_x = 0.
-		# Reuses _start_wall_jump() with _last_wall_normal = ZERO so the
-		# horizontal kick is 0 and the player launches vertically.
-		# See _start_wall_jump() for the full launch logic.
+		# Bar jump — directional kick based on held input, straight up if neutral.
+		# Mirrors wall jump: _last_wall_normal.x drives the horizontal launch via
+		# _start_wall_jump(), so ±1 gives the same kick as leaving a wall.
 		_release_hold()
-		_last_wall_normal = Vector2.ZERO
+		_hold_grab_cooldown = 0.25   # prevent re-grab before player clears the zone
+		_last_wall_normal = Vector2(_input_x, 0.0)
 		_start_wall_jump()
 		return
 
@@ -647,11 +670,17 @@ func _process_hang_move(input: Vector2, _delta: float) -> void:
 		_set_state(State.FALL)
 		return
 
-	# Clamp position at the start of each frame to catch edge overshoot.
+	# If the player is pressing past either end of the hold, drop them.
 	var bh := _current_hold as BackgroundHold
 	if bh:
 		var half := bh.hold_width * 0.5
 		var cx   := bh.global_position.x
+		var at_edge := (global_position.x <= cx - half and input.x < 0.0) \
+					or (global_position.x >= cx + half and input.x > 0.0)
+		if at_edge:
+			_hang_edge_dir = int(sign(input.x))
+			_set_state(State.HANG_EDGE)
+			return
 		global_position.x = clampf(global_position.x, cx - half, cx + half)
 
 	velocity.x = input.x * hang_move_speed
@@ -673,6 +702,12 @@ func _process_hang_move(input: Vector2, _delta: float) -> void:
 		_set_state(State.FALL)
 		return
 
+	if _down_held:
+		_release_hold()
+		_hold_grab_cooldown = 0.15
+		_set_state(State.FALL)
+		return
+
 	if not _grip_held:
 		_release_hold()
 		_set_state(State.FALL)
@@ -680,12 +715,54 @@ func _process_hang_move(input: Vector2, _delta: float) -> void:
 
 	if _jump_pressed:
 		_release_hold()
-		_last_wall_normal = Vector2.ZERO
+		_hold_grab_cooldown = 0.25
+		_last_wall_normal = Vector2(_input_x, 0.0)
 		_start_wall_jump()
 		return
 
 	if _input_x == 0.0:
 		_set_state(State.HANG_IDLE)
+
+# ---------------------------------------------------------------------------
+# HANG EDGE  (player has reached the end of a background hold)
+# Freezes at the edge and plays ClimbJumpPrepare while the player keeps
+# pressing into the edge.  Jump fires a directional bar jump.
+# Releasing the direction returns to HANG_MOVE / HANG_IDLE.
+# Releasing grip or stamina exhaustion drops the player.
+# ---------------------------------------------------------------------------
+func _process_hang_edge(_input: Vector2, _delta: float) -> void:
+	velocity = Vector2.ZERO   # stay frozen at the edge
+
+	if _stamina_exhausted:
+		_release_hold()
+		velocity.y = 80.0
+		_set_state(State.FALL)
+		return
+
+	if _down_held:
+		_release_hold()
+		_hold_grab_cooldown = 0.15
+		_set_state(State.FALL)
+		return
+
+	if not _grip_held:
+		_release_hold()
+		_set_state(State.FALL)
+		return
+
+	if _jump_pressed:
+		# Launch in the edge direction — same kick as a wall jump.
+		_release_hold()
+		_hold_grab_cooldown = 0.25
+		_last_wall_normal = Vector2(float(_hang_edge_dir), 0.0)
+		_start_wall_jump()
+		return
+
+	# Player released or reversed direction — leave edge state.
+	if _input_x == 0.0:
+		_set_state(State.HANG_IDLE)
+	elif int(sign(_input_x)) != _hang_edge_dir:
+		_set_state(State.HANG_MOVE)
 
 # ---------------------------------------------------------------------------
 # TRY GRAB HOLD
@@ -707,10 +784,9 @@ func _try_grab_hold() -> void:
 	if bh:
 		_current_hold_type = bh.hold_type         # cache for future ROPE logic
 
-	# Snap so the player hangs below the hold centre.
-	# 20 px puts the player's hands at roughly the hold bar position.
-	global_position.y = (_current_hold as Node2D).global_position.y + 20.0
-
+	# No position snap — the player freezes at their current Y.
+	# Setting global_position inside _physics_process can confuse Area2D overlap
+	# detection, causing a spurious area_exited → release → re-grab loop.
 	velocity = Vector2.ZERO
 	_set_state(State.HANG_IDLE)
 
@@ -741,7 +817,8 @@ func _on_hold_area_entered(area: Area2D) -> void:
 	if background_holds_enabled \
 			and hold_grab_mode == HoldGrabMode.PRESS_THEN_OVERLAP \
 			and _grip_pressed_before_overlap \
-			and state != State.HANG_IDLE and state != State.HANG_MOVE:
+			and state != State.HANG_IDLE and state != State.HANG_MOVE \
+			and state != State.HANG_EDGE:
 		_try_grab_hold()
 
 func _on_hold_area_exited(area: Area2D) -> void:
@@ -764,7 +841,8 @@ func _tick_stamina(delta: float) -> void:
 						 or state == State.LEDGE_HANG
 						 or state == State.LEDGE_CLIMB
 						 or state == State.HANG_IDLE
-						 or state == State.HANG_MOVE)
+						 or state == State.HANG_MOVE
+						 or state == State.HANG_EDGE)
 
 	if is_gripping:
 		# Choose the drain rate for the current activity.
@@ -774,7 +852,8 @@ func _tick_stamina(delta: float) -> void:
 		elif state == State.LEDGE_HANG and _sprite.animation == &"LedgeHangIdle":
 			# Idle hang uses the lower drain rate — only if the toggle is on.
 			drain = stamina_drain_ledge_hang_idle if ledge_hang_idle_drains_stamina else 0.0
-		elif state == State.HANG_IDLE or state == State.HANG_MOVE:
+		elif state == State.HANG_IDLE or state == State.HANG_MOVE \
+				or state == State.HANG_EDGE:
 			# Background hold hanging — uses its own stamina_drain_hang rate.
 			drain = stamina_drain_hang
 		else:
@@ -987,6 +1066,7 @@ func _tick_timers(delta: float) -> void:
 
 	_jump_buffer_timer      = maxf(_jump_buffer_timer      - delta, 0.0)
 	_ledge_grab_cooldown    = maxf(_ledge_grab_cooldown    - delta, 0.0)
+	_hold_grab_cooldown     = maxf(_hold_grab_cooldown     - delta, 0.0)
 
 	# Ledge coyote and grab buffer — both fed from the same raycast snapshot.
 	# Coyote: mirrors floor coyote — stays fresh while ledge is visible, then
@@ -1040,7 +1120,8 @@ func _update_state() -> void:
 	# Ledge and background-hold states are managed entirely by their own
 	# process functions — don't let _update_state override them mid-hang.
 	if state == State.LEDGE_HANG or state == State.LEDGE_CLIMB \
-			or state == State.HANG_IDLE or state == State.HANG_MOVE:
+			or state == State.HANG_IDLE or state == State.HANG_MOVE \
+			or state == State.HANG_EDGE:
 		return
 
 	# Evaluated in both branches below, so defined once here.
@@ -1148,6 +1229,8 @@ func _set_state(new_state: State) -> void:
 			# Direction-specific animation is set each frame inside _process_hang_move.
 			# Default to ClimbLeft; it will be corrected within one physics tick.
 			_sprite.play("ClimbLeft")
+		State.HANG_EDGE:
+			_sprite.play("ClimbJumpPrepare")
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
 # ---------------------------------------------------------------------------

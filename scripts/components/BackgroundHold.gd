@@ -39,6 +39,12 @@ enum HoldType {
 ## Players are clamped within ± hold_width/2 of this node's centre while hanging.
 @export var hold_width: float = 64.0
 
+## Height of the grabbable detection zone in pixels.
+## Keep close to the visual bar height for a tight "pipe grab" feel.
+## Note: the player's HoldDetector (56 px tall) adds ~28 px of extra range on
+## each side, so total grab range = hold_height / 2 + 28 px from centre.
+@export_range(4.0, 128.0, 4.0, "suffix:px") var hold_height: float = 16.0
+
 ## Determines which player animation set is used while hanging here.
 ## Only BACKGROUND is implemented; ROPE is reserved for a future update.
 @export var hold_type: HoldType = HoldType.BACKGROUND
@@ -74,11 +80,11 @@ func _ready() -> void:
 	# so the group must be on the Area2D for Player.gd's group check to work.
 	_hold_zone.add_to_group("background_holds")
 
-	# Resize the collision rectangle to match the exported hold_width.
-	# Height stays fixed at 16 px (set in the scene) regardless of width.
+	# Resize the collision rectangle to match the exported dimensions.
 	if _col_shape.shape is RectangleShape2D:
 		var rect := _col_shape.shape as RectangleShape2D
 		rect.size.x = hold_width
+		rect.size.y = hold_height
 
 	# Connect zone signals to this script's signals so callers can subscribe
 	# to player_grabbed / player_released on the BackgroundHold node directly.
@@ -86,3 +92,15 @@ func _ready() -> void:
 		player_grabbed.emit(body))
 	_hold_zone.body_exited.connect(func(body: Node2D) -> void:
 		player_released.emit(body))
+
+	# Draw the debug visual so the hold is visible while testing.
+	queue_redraw()
+
+func _draw() -> void:
+	# Solid white bar — the visual pipe / handhold the player sees.
+	draw_rect(Rect2(-hold_width * 0.5, -8.0, hold_width, 16.0), Color.WHITE)
+	# Outline showing the actual detection zone (hold_height).
+	# The player's HoldDetector adds ~28 px on each side beyond this outline.
+	var dh := hold_height
+	draw_rect(Rect2(-hold_width * 0.5, -dh * 0.5, hold_width, dh),
+			Color(1.0, 1.0, 0.0, 0.35), false, 1.0)

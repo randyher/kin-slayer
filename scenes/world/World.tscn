@@ -13,14 +13,8 @@
 
 [node name="World" type="Node2D"]
 
-[node name="Background" type="CanvasLayer" parent="."]
-layer = -1
-
-[node name="Bg" type="ColorRect" parent="Background"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0.08, 0.08, 0.12, 1)
-mouse_filter = 2
+; Background removed — each room provides its own parallax background.
+; The Atmosphere CanvasLayer in each room scene handles the tint overlay.
 
 ; RoomCamera tracks both players and handles room-transition fades.
 ; next_room / prev_room are set automatically on each room load —

@@ -6,13 +6,12 @@
 [ext_resource type="Script" uid="uid://c8btyx3yyqoqx" path="res://scenes/world/Level01_Room01.gd" id="4_script"]
 [ext_resource type="Texture2D" uid="uid://b8prhjk36efsp" path="res://assets/tilesets/Props.png" id="5_ijdsj"]
 [ext_resource type="PackedScene" path="res://scenes/entities/BackgroundHold.tscn" id="bgh_scene"]
-
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-background.png" id="mc_bg"]
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-sprites.png" id="mc_spr"]
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/magic-castle-tiles.png" id="mc_tiles"]
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/torch-anim-with-bg.png" id="torch_bg"]
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/torch-anim.png" id="torch_fg"]
-[ext_resource type="Texture2D" path="res://assets/sprites/environments/magic-castle/water-anim.png" id="water"]
+[ext_resource type="Texture2D" uid="uid://bp37yajpcd47h" path="res://assets/sprites/environments/magic-castle/magic-castle-background.png" id="mc_bg"]
+[ext_resource type="Texture2D" uid="uid://bevu5uyqshgmj" path="res://assets/sprites/environments/magic-castle/magic-castle-sprites.png" id="mc_spr"]
+[ext_resource type="Texture2D" uid="uid://dle44gyxm5v4j" path="res://assets/sprites/environments/magic-castle/magic-castle-tiles.png" id="mc_tiles"]
+[ext_resource type="Texture2D" uid="uid://5bq2kod6vka" path="res://assets/sprites/environments/magic-castle/torch-anim-with-bg.png" id="torch_bg"]
+[ext_resource type="Texture2D" uid="uid://cmff4t3h5v6b3" path="res://assets/sprites/environments/magic-castle/torch-anim.png" id="torch_fg"]
+[ext_resource type="Texture2D" uid="uid://2qc6jhf4ra7v" path="res://assets/sprites/environments/magic-castle/water-anim.png" id="water"]
 
 [sub_resource type="TileSetAtlasSource" id="AtlasSource_bricks"]
 texture = ExtResource("2_bricks")
@@ -661,10 +660,6 @@ size = Vector2(16, 648)
 [sub_resource type="RectangleShape2D" id="Shape_exit_h"]
 size = Vector2(1152, 16)
 
-
-; ── Magic Castle environment resources ──────────────────────────────────────
-
-; AtlasTextures: torch-with-bg (5 frames, 48x48 each)
 [sub_resource type="AtlasTexture" id="tbg_f0"]
 atlas = ExtResource("torch_bg")
 region = Rect2(0, 0, 48, 48)
@@ -685,45 +680,6 @@ region = Rect2(144, 0, 48, 48)
 atlas = ExtResource("torch_bg")
 region = Rect2(192, 0, 48, 48)
 
-; AtlasTextures: torch foreground (5 frames, 16x32 each — adjust if frame size differs)
-[sub_resource type="AtlasTexture" id="tf_f0"]
-atlas = ExtResource("torch_fg")
-region = Rect2(0, 0, 16, 32)
-
-[sub_resource type="AtlasTexture" id="tf_f1"]
-atlas = ExtResource("torch_fg")
-region = Rect2(16, 0, 16, 32)
-
-[sub_resource type="AtlasTexture" id="tf_f2"]
-atlas = ExtResource("torch_fg")
-region = Rect2(32, 0, 16, 32)
-
-[sub_resource type="AtlasTexture" id="tf_f3"]
-atlas = ExtResource("torch_fg")
-region = Rect2(48, 0, 16, 32)
-
-[sub_resource type="AtlasTexture" id="tf_f4"]
-atlas = ExtResource("torch_fg")
-region = Rect2(64, 0, 16, 32)
-
-; AtlasTextures: water (4 frames, 32x32 each — vertical strip)
-[sub_resource type="AtlasTexture" id="wa_f0"]
-atlas = ExtResource("water")
-region = Rect2(0, 0, 32, 32)
-
-[sub_resource type="AtlasTexture" id="wa_f1"]
-atlas = ExtResource("water")
-region = Rect2(0, 32, 32, 32)
-
-[sub_resource type="AtlasTexture" id="wa_f2"]
-atlas = ExtResource("water")
-region = Rect2(0, 64, 32, 32)
-
-[sub_resource type="AtlasTexture" id="wa_f3"]
-atlas = ExtResource("water")
-region = Rect2(0, 96, 32, 32)
-
-; SpriteFrames: wall torch with background (8 fps)
 [sub_resource type="SpriteFrames" id="sf_torch_bg"]
 animations = [{
 "frames": [{
@@ -747,7 +703,26 @@ animations = [{
 "speed": 8.0
 }]
 
-; SpriteFrames: foreground torch (8 fps)
+[sub_resource type="AtlasTexture" id="tf_f0"]
+atlas = ExtResource("torch_fg")
+region = Rect2(0, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f1"]
+atlas = ExtResource("torch_fg")
+region = Rect2(16, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f2"]
+atlas = ExtResource("torch_fg")
+region = Rect2(32, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f3"]
+atlas = ExtResource("torch_fg")
+region = Rect2(48, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="tf_f4"]
+atlas = ExtResource("torch_fg")
+region = Rect2(64, 0, 16, 32)
+
 [sub_resource type="SpriteFrames" id="sf_torch_fg"]
 animations = [{
 "frames": [{
@@ -771,7 +746,22 @@ animations = [{
 "speed": 8.0
 }]
 
-; SpriteFrames: water (8 fps)
+[sub_resource type="AtlasTexture" id="wa_f0"]
+atlas = ExtResource("water")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f1"]
+atlas = ExtResource("water")
+region = Rect2(0, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f2"]
+atlas = ExtResource("water")
+region = Rect2(0, 64, 32, 32)
+
+[sub_resource type="AtlasTexture" id="wa_f3"]
+atlas = ExtResource("water")
+region = Rect2(0, 96, 32, 32)
+
 [sub_resource type="SpriteFrames" id="sf_water"]
 animations = [{
 "frames": [{
@@ -792,15 +782,21 @@ animations = [{
 "speed": 8.0
 }]
 
-; TileSet: Magic Castle tiles (16x16 source, scale 2x on the TileMapLayer = 32px world)
 [sub_resource type="TileSetAtlasSource" id="AtlasSource_mc"]
 texture = ExtResource("mc_tiles")
-texture_region_size = Vector2i(16, 16)
 
 [sub_resource type="TileSet" id="TileSet_mc"]
-tile_size = Vector2i(16, 16)
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("AtlasSource_mc")
+
+; TileSet: magic-castle-background (16x16 tiles, no collision — background paint layer only)
+[sub_resource type="TileSetAtlasSource" id="AtlasSource_bg_paint"]
+texture = ExtResource("mc_bg")
+texture_region_size = Vector2i(16, 16)
+
+[sub_resource type="TileSet" id="TileSet_bg_paint"]
+tile_size = Vector2i(16, 16)
+sources/0 = SubResource("AtlasSource_bg_paint")
 
 [node name="Room" unique_id=43142681 instance=ExtResource("1_room_base")]
 script = ExtResource("4_script")
@@ -857,130 +853,107 @@ position = Vector2(-92, 155)
 hold_label = "Test Hold"
 hold_width = 128.0
 
-; ── Magic Castle parallax background ────────────────────────────────────────
-; ParallaxBackground renders at CanvasLayer -100 by default — behind all
-; game nodes.  Adjust motion_scale per layer to tune the parallax depth feel.
+; ── Background paint layer ───────────────────────────────────────────────────
+; Uses magic-castle-background.png as a 16x16 tile palette.
+; Scale (2,2) → tiles display as 32x32 world pixels.
+; z_index -15 renders behind players, holds, and platform tiles.
+; HOW TO PAINT:
+;   1. Select "Background" in the scene tree
+;   2. Open the TileMap tab at the bottom of the Godot editor
+;   3. Pick tiles from the right-hand palette and paint onto the canvas
+;   4. Use the large brick wall tile to fill the back wall
+;   5. Stamp arch, door, column, window tiles where needed
+[node name="Background" type="TileMapLayer" parent="."]
+z_index = -15
+scale = Vector2(2, 2)
+tile_set = SubResource("TileSet_bg_paint")
 
-[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+[node name="ParallaxBackground" type="ParallaxBackground" parent="." index="11" unique_id=1763209166]
 
-; Layer 1 — deep background.  motion_mirroring tiles the 288px sprite every
-; 288px of camera movement so the background covers the full room seamlessly.
-; Tune motion_scale x/y to change how much the background drifts.
-[node name="BackgroundFar" type="ParallaxLayer" parent="ParallaxBackground"]
+[node name="BackgroundFar" type="ParallaxLayer" parent="ParallaxBackground" index="0" unique_id=644820422]
+z_index = -20
 motion_scale = Vector2(0.1, 0.05)
 motion_mirroring = Vector2(288, 0)
-z_index = -20
 
-[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundFar"]
-; Scale to 2.25x so the 288px texture fills the 648px room height.
-; Increase scale to zoom in on the art; decrease to show more repetition.
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundFar" index="0" unique_id=1914360928]
+position = Vector2(-268, -9)
 scale = Vector2(2.25, 2.25)
 texture = ExtResource("mc_bg")
 
-; Layer 2 — mid decorative sheet (gargoyles, curtains, frames).
-; Set region_rect in the editor to isolate individual sprite-sheet elements.
-[node name="BackgroundMid" type="ParallaxLayer" parent="ParallaxBackground"]
-motion_scale = Vector2(0.3, 0.1)
+[node name="BackgroundMid" type="ParallaxLayer" parent="ParallaxBackground" index="1" unique_id=1453666785]
 z_index = -10
+motion_scale = Vector2(0.3, 0.1)
 
-[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundMid"]
-; Displayed at 2x — full sprite sheet.  Crop with region_rect in the editor.
-scale = Vector2(2, 2)
-texture = ExtResource("mc_spr")
+; BackgroundMid — place individual prop sprites here by cropping mc_spr with region_rect.
+; mc_spr (magic-castle-sprites.png) is a sprite sheet — do NOT use it as a full texture.
+; In the editor: add a Sprite2D child, assign mc_spr, enable Region, set region_rect to
+; isolate the gargoyle / curtain / frame element you want, then position it manually.
+[node name="Sprite2D" type="Sprite2D" parent="ParallaxBackground/BackgroundMid" index="0" unique_id=158334486]
+; texture intentionally left blank — assign a cropped region in the editor (see comment above)
 
-; Layer 3 — wall-mounted torches.  Scrolls horizontally at 0.5x camera speed;
-; vertical is fixed (motion_scale.y = 0) so torches stay at wall height.
-[node name="TorchWalls" type="ParallaxLayer" parent="ParallaxBackground"]
-motion_scale = Vector2(0.5, 0.0)
+[node name="TorchWalls" type="ParallaxLayer" parent="ParallaxBackground" index="2" unique_id=1870638363]
 z_index = -5
+motion_scale = Vector2(0.5, 0)
 
-[node name="Torch1" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
+[node name="Torch1" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls" index="0" unique_id=1210939910]
 position = Vector2(-300, 0)
 sprite_frames = SubResource("sf_torch_bg")
-animation = &"default"
 autoplay = "default"
 
-[node name="Torch2" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
-position = Vector2(0, 0)
+[node name="Torch2" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls" index="1" unique_id=1851505963]
 sprite_frames = SubResource("sf_torch_bg")
-animation = &"default"
 autoplay = "default"
 
-[node name="Torch3" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls"]
+[node name="Torch3" type="AnimatedSprite2D" parent="ParallaxBackground/TorchWalls" index="2" unique_id=1908865900]
 position = Vector2(300, 0)
 sprite_frames = SubResource("sf_torch_bg")
-animation = &"default"
 autoplay = "default"
 
-; ── Foreground props ─────────────────────────────────────────────────────────
-; z_index 10 — renders in front of players (z ~5) and tiles (z ~0).
-; Foreground torches — add more props here as needed
-[node name="Foreground" type="Node2D" parent="."]
+[node name="Foreground" type="Node2D" parent="." index="12" unique_id=721268745]
 z_index = 10
 
-[node name="Torch1" type="AnimatedSprite2D" parent="Foreground"]
+[node name="Torch1" type="AnimatedSprite2D" parent="Foreground" index="0" unique_id=2028585076]
 position = Vector2(-450, 100)
 sprite_frames = SubResource("sf_torch_fg")
-animation = &"default"
 autoplay = "default"
 
-[node name="Torch2" type="AnimatedSprite2D" parent="Foreground"]
+[node name="Torch2" type="AnimatedSprite2D" parent="Foreground" index="1" unique_id=147766376]
 position = Vector2(450, 100)
 sprite_frames = SubResource("sf_torch_fg")
-animation = &"default"
 autoplay = "default"
 
-; ── Water ────────────────────────────────────────────────────────────────────
-; OPTIONAL — reposition or remove if room layout doesn't need water.
-; z_index -3 places it just behind the player but in front of parallax.
-[node name="Water" type="AnimatedSprite2D" parent="."]
-position = Vector2(0, 280)
+[node name="Water" type="AnimatedSprite2D" parent="." index="13" unique_id=1927962291]
 z_index = -3
+position = Vector2(0, 280)
 sprite_frames = SubResource("sf_water")
-animation = &"default"
 autoplay = "default"
 
-; ── Magic Castle platform tiles ───────────────────────────────────────────────
-; Paint tiles manually in Godot editor:
-; Select Platforms → open TileMap tab at bottom of editor → paint platforms.
-; scale (2,2) matches existing TileMapLayer so 16px tiles = 32px world pixels.
-[node name="Platforms" type="TileMapLayer" parent="."]
+[node name="Platforms" type="TileMapLayer" parent="." index="14" unique_id=942591350]
 scale = Vector2(2, 2)
-z_index = 0
 tile_set = SubResource("TileSet_mc")
 
-; ── Atmosphere overlay ────────────────────────────────────────────────────────
-; CanvasLayer -1 renders behind the game world (layer 0) but in front of
-; the ParallaxBackground (layer -100).
-; Atmosphere overlay — adjust alpha for darker/lighter feel.
-[node name="Atmosphere" type="CanvasLayer" parent="."]
+[node name="Atmosphere" type="CanvasLayer" parent="." index="15" unique_id=493951779]
 layer = -1
 
-[node name="ColorRect" type="ColorRect" parent="Atmosphere"]
+[node name="ColorRect" type="ColorRect" parent="Atmosphere" index="0" unique_id=1891985382]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.05, 0.1, 0.35)
 mouse_filter = 2
+color = Color(0.05, 0.05, 0.1, 0.35)
 
-; ── Torch point lights ────────────────────────────────────────────────────────
-; Torch light — requires CanvasItem lighting enabled in:
-;   Project Settings → Rendering → 2D → Use Canvas Group Lighting
-; Assign a radial gradient Texture2D to each PointLight2D in the Inspector
-; for the light shape — without a texture, no light is rendered.
-; Tune energy (0.8) and color for warmer/cooler flame feel.
-[node name="Lights" type="Node2D" parent="."]
+[node name="Lights" type="Node2D" parent="." index="16" unique_id=221509940]
 
-[node name="TorchLight1" type="PointLight2D" parent="Lights"]
+[node name="TorchLight1" type="PointLight2D" parent="Lights" index="0" unique_id=426635937]
 position = Vector2(-300, 0)
-color = Color(1.0, 0.7, 0.3, 1.0)
+color = Color(1, 0.7, 0.3, 1)
 energy = 0.8
 
-[node name="TorchLight2" type="PointLight2D" parent="Lights"]
-position = Vector2(0, 0)
-color = Color(1.0, 0.7, 0.3, 1.0)
+[node name="TorchLight2" type="PointLight2D" parent="Lights" index="1" unique_id=2131707314]
+color = Color(1, 0.7, 0.3, 1)
 energy = 0.8
 
-[node name="TorchLight3" type="PointLight2D" parent="Lights"]
+[node name="TorchLight3" type="PointLight2D" parent="Lights" index="2" unique_id=621809930]
 position = Vector2(300, 0)
-color = Color(1.0, 0.7, 0.3, 1.0)
+color = Color(1, 0.7, 0.3, 1)
 energy = 0.8

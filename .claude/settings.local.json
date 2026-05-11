@@ -22,7 +22,11 @@
       "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel UI & HUD/Sprites/Hearts/Red/HPDetailed_Full.png\" /Users/randyherasme/kin-slayer/assets/sprites/ui/hearts/)",
       "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel UI & HUD/Sprites/Hearts/Red/HPDetailed_Empty.png\" /Users/randyherasme/kin-slayer/assets/sprites/ui/hearts/)",
       "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel UI & HUD/Sprites/Hearts/Red/HeartDetailed_Full.png\" /Users/randyherasme/kin-slayer/assets/sprites/ui/hearts/)",
-      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel UI & HUD/Sprites/Hearts/Red/HeartDetailed_Empty.png\" /Users/randyherasme/kin-slayer/assets/sprites/ui/hearts/)"
+      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel UI & HUD/Sprites/Hearts/Red/HeartDetailed_Empty.png\" /Users/randyherasme/kin-slayer/assets/sprites/ui/hearts/)",
+      "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbGrab\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbGrab)",
+      "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbIdle\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbIdle)",
+      "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbLeft\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbLeft)",
+      "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbRight\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbRight)"
     ]
   }
 }

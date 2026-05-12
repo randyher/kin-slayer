@@ -1175,9 +1175,13 @@ func _update_state() -> void:
 	# When wall climbing against a ceiling, move_and_slide() may report only the
 	# ceiling normal that frame, making _is_on_climbable_wall() briefly return
 	# false and causing a one-frame drop to FALL/WALL_SLIDE → animation flicker.
-	# test_move is used here for the same reason as in _process_wall_climb:
-	# is_on_ceiling() flip-flops so test_move is the stable check.
-	if state == State.WALL_CLIMB and test_move(global_transform, Vector2(0.0, -8.0)):
+	# The _is_on_climbable_wall() condition ensures this guard only holds while
+	# the player is still in contact with the wall — pressing the opposite
+	# direction moves them off the wall, clearing the guard and allowing the
+	# normal fall transition to run.
+	if state == State.WALL_CLIMB \
+			and test_move(global_transform, Vector2(0.0, -8.0)) \
+			and _is_on_climbable_wall():
 		return
 
 	# Ledge and background-hold states are managed entirely by their own

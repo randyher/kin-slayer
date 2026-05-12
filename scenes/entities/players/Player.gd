@@ -1150,8 +1150,8 @@ func _is_on_climbable_wall() -> bool:
 	var space := get_world_2d().direct_space_state
 	var fx    := float(_facing_direction) * 20.0
 	var upper := PhysicsRayQueryParameters2D.create(
-		global_position + Vector2(0.0, 4.0),
-		global_position + Vector2(fx, 4.0)
+		global_position + Vector2(0.0, 2.0),
+		global_position + Vector2(fx, 2.0)
 	)
 	upper.exclude = [get_rid()]; upper.collision_mask = collision_mask
 	if space.intersect_ray(upper).is_empty():
@@ -1289,6 +1289,9 @@ func _set_state(new_state: State) -> void:
 	# immediately re-grab the same wall section.
 	if state == State.WALL_CLIMB and new_state == State.FALL:
 		_wall_climb_cooldown = 0.25
+		# Cancel any upward wall-climb velocity so the player falls immediately
+		# toward the ledge detection zone rather than arcing further above it.
+		velocity.y = maxf(velocity.y, 0.0)
 	# While the double jump flip is mid-play, allow physics state to update
 	# (so gravity, collision, and air-dash logic stay correct) but don't touch
 	# the animation. Only natural air transitions are guarded — deliberate inputs

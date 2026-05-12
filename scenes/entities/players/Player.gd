@@ -1109,7 +1109,11 @@ func _tick_timers(delta: float) -> void:
 	# every right-angle corner where a wall meets an overhead surface.
 	# Also zero both timers immediately on any ceiling contact so a previously
 	# set timer can't fire in the coyote window after the player leaves.
-	var _ceiling_above    := test_move(global_transform, Vector2(0.0, -8.0))
+	# Ceiling check is scoped to WALL_CLIMB only.  In JUMP/FALL the surface
+	# 8 px above the player is the ledge being approached from below — treating
+	# it as a ceiling would kill the timers and prevent the grab entirely.
+	var _ceiling_above    := state == State.WALL_CLIMB \
+							 and test_move(global_transform, Vector2(0.0, -8.0))
 	var _ledge_in_range   := (_ledge_check_lower.is_colliding()
 							and not _ledge_check_upper.is_colliding()
 							and not _ceiling_above)
@@ -1118,7 +1122,7 @@ func _tick_timers(delta: float) -> void:
 		_ledge_grab_buffer_timer = ledge_grab_buffer_time
 		_ledge_detected_y        = global_position.y   # freeze the ideal hang height
 	elif _ceiling_above:
-		# Hard-clear timers — ceiling overhead invalidates any pending ledge grab.
+		# Hard-clear timers — only fires during WALL_CLIMB at a corner.
 		_ledge_coyote_timer      = 0.0
 		_ledge_grab_buffer_timer = 0.0
 	else:
@@ -1250,7 +1254,7 @@ func _update_state() -> void:
 		#    ledge is present. This must beat wall climb so the player can't
 		#    climb straight past a ledge with grip held.
 		if can_grip and _ledge_grab_cooldown <= 0.0 \
-				and not test_move(global_transform, Vector2(0.0, -8.0)) \
+				and not (state == State.WALL_CLIMB and test_move(global_transform, Vector2(0.0, -8.0))) \
 				and (_ledge_coyote_timer > 0.0 or _ledge_grab_buffer_timer > 0.0):
 			# Test the ledge-climb landing spot before committing to a hang.
 			# Uses _ledge_detected_y (the actual snap base) for accuracy, and the

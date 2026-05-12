@@ -1133,11 +1133,33 @@ func _tick_timers(delta: float) -> void:
 func _is_on_climbable_wall() -> bool:
 	if not is_on_wall():
 		return false
+	# Require wall geometry to exist at BOTH an upper and a lower body sample
+	# point.  The stand capsule runs from y+1 (top) to y+43 (bottom).
+	# Upper sample at y+8  — if the wall surface starts below this the player
+	#   is too far above the platform (feet-only graze from above).
+	# Lower sample at y+32 — if the wall surface ends above this the player
+	#   is too far below the platform (head-only graze from below).
+	# Both must hit for the wall to span most of the body and count as climbable.
+	var space := get_world_2d().direct_space_state
+	var fx    := float(_facing_direction) * 20.0
+	var upper := PhysicsRayQueryParameters2D.create(
+		global_position + Vector2(0.0, 4.0),
+		global_position + Vector2(fx, 4.0)
+	)
+	upper.exclude = [get_rid()]; upper.collision_mask = collision_mask
+	if space.intersect_ray(upper).is_empty():
+		return false
+	var lower := PhysicsRayQueryParameters2D.create(
+		global_position + Vector2(0.0, 32.0),
+		global_position + Vector2(fx, 32.0)
+	)
+	lower.exclude = [get_rid()]; lower.collision_mask = collision_mask
+	if space.intersect_ray(lower).is_empty():
+		return false
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		if col.get_collider() is Player:
 			continue
-		# A wall contact has a predominantly horizontal normal (|x| > |y|).
 		if abs(col.get_normal().x) > abs(col.get_normal().y):
 			return true
 	return false

@@ -1220,7 +1220,7 @@ func _update_state() -> void:
 		# Wall climb takes priority even from the ground — if the player is
 		# standing against a wall, holding grip, and has stamina, let them
 		# transition directly into the climb without needing to jump first.
-		if _is_on_climbable_wall() and _grip_held and can_grip:
+		if _is_on_climbable_wall() and _grip_held and can_grip and not _down_held:
 			_set_state(State.WALL_CLIMB)
 		elif _down_held and _input_x != 0.0:
 			_set_state(State.CRAWL)

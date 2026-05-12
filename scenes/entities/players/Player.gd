@@ -277,6 +277,12 @@ var _hang_edge_dir: int = 0
 # hold before move_and_slide() has had a chance to move them out of the zone.
 var _hold_grab_cooldown : float = 0.0
 
+# Counts down after WALL_CLIMB drops to FALL (not via a wall jump).
+# Prevents the rapid re-grab oscillation when the player overshoots a
+# platform edge — the brief window also lets ledge detection fire so the
+# player can pull themselves up with the up input instead.
+var _wall_climb_cooldown : float = 0.0
+
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
 # Mirrors _coyote_timer exactly, but for walls instead of floors.
@@ -1091,6 +1097,7 @@ func _tick_timers(delta: float) -> void:
 	_jump_buffer_timer      = maxf(_jump_buffer_timer      - delta, 0.0)
 	_ledge_grab_cooldown    = maxf(_ledge_grab_cooldown    - delta, 0.0)
 	_hold_grab_cooldown     = maxf(_hold_grab_cooldown     - delta, 0.0)
+	_wall_climb_cooldown    = maxf(_wall_climb_cooldown    - delta, 0.0)
 
 	# Ledge coyote and grab buffer — both fed from the same raycast snapshot.
 	# Coyote: mirrors floor coyote — stays fresh while ledge is visible, then
@@ -1255,7 +1262,8 @@ func _update_state() -> void:
 				_set_state(State.LEDGE_HANG)
 
 		# 2. WALL CLIMB — grip held + on climbable wall, no ledge in the way.
-		elif _is_on_climbable_wall() and _grip_held and can_grip:
+		elif _is_on_climbable_wall() and _grip_held and can_grip \
+				and _wall_climb_cooldown <= 0.0:
 			_set_state(State.WALL_CLIMB)
 
 		# 3. WALL SLIDE — falling + pressing toward a climbable wall (no grip needed).
@@ -1276,6 +1284,11 @@ func _update_state() -> void:
 func _set_state(new_state: State) -> void:
 	if state == new_state:
 		return  # already in this state — nothing to do
+	# When wall climb drops involuntarily to FALL (not a deliberate wall jump,
+	# which exits to JUMP), apply a brief cooldown so the player can't
+	# immediately re-grab the same wall section.
+	if state == State.WALL_CLIMB and new_state == State.FALL:
+		_wall_climb_cooldown = 0.25
 	# While the double jump flip is mid-play, allow physics state to update
 	# (so gravity, collision, and air-dash logic stay correct) but don't touch
 	# the animation. Only natural air transitions are guarded — deliberate inputs

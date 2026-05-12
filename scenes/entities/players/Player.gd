@@ -558,8 +558,11 @@ func _process_wall_climb(input: Vector2, delta: float) -> void:
 		return
 
 	# Move up while up is held, down while down is held, or stay put.
+	# Use test_move to detect ceiling rather than is_on_ceiling() — the latter
+	# flip-flops every other frame because it requires upward velocity to register,
+	# causing the player to keep pushing through the ceiling in alternating frames.
 	if _up_held:
-		velocity.y = -wall_climb_speed
+		velocity.y = 0.0 if test_move(global_transform, Vector2(0.0, -8.0)) else -wall_climb_speed
 	elif _down_held:
 		velocity.y = wall_slide_speed   # descend at the normal slide speed
 	else:
@@ -573,6 +576,11 @@ func _process_wall_climb(input: Vector2, delta: float) -> void:
 	else:
 		if _sprite.animation != &"WallClimbIdle":
 			_sprite.play("WallClimbIdle")
+
+	# Grip released voluntarily — drop away from the wall.
+	if not _grip_held:
+		_set_state(State.FALL)
+		return
 
 	# Exhaustion: _stamina_exhausted is set by _tick_stamina() when _stamina hits 0.
 	# Push the player away from the wall so they don't immediately re-grab.
@@ -603,8 +611,13 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 		return
 
 	elif _up_pressed:
-		_ledge_hang_position = global_position   # save for climb-up offset
-		_set_state(State.LEDGE_CLIMB)
+		# Before climbing, verify the landing spot has room for the standing shape.
+		# If a ceiling blocks the destination the player cannot pull up.
+		var dest := Transform2D(0.0,
+				global_position + Vector2(float(_facing_direction) * 14.5, -39.0))
+		if not _test_stand_shape_at(dest):
+			_ledge_hang_position = global_position   # save for climb-up offset
+			_set_state(State.LEDGE_CLIMB)
 
 	elif _down_held and _grip_held and not _stamina_exhausted:
 		# Down + grip while hanging → re-enter wall climb to descend.
@@ -1084,12 +1097,23 @@ func _tick_timers(delta: float) -> void:
 	#         decays, giving a short window to grab after drifting past the edge.
 	# Buffer: also set while ledge is visible so the grab fires the moment
 	#         can_grip becomes true, even if raycasts have since lost the ledge.
-	var _ledge_in_range := (_ledge_check_lower.is_colliding()
-							and not _ledge_check_upper.is_colliding())
+	# Never feed the ledge timers while on a ceiling — the horizontal raycasts
+	# can't see a horizontal ceiling, so they'd falsely detect a "ledge" at
+	# every right-angle corner where a wall meets an overhead surface.
+	# Also zero both timers immediately on any ceiling contact so a previously
+	# set timer can't fire in the coyote window after the player leaves.
+	var _ceiling_above    := test_move(global_transform, Vector2(0.0, -8.0))
+	var _ledge_in_range   := (_ledge_check_lower.is_colliding()
+							and not _ledge_check_upper.is_colliding()
+							and not _ceiling_above)
 	if _ledge_in_range:
 		_ledge_coyote_timer      = ledge_coyote_time
 		_ledge_grab_buffer_timer = ledge_grab_buffer_time
 		_ledge_detected_y        = global_position.y   # freeze the ideal hang height
+	elif _ceiling_above:
+		# Hard-clear timers — ceiling overhead invalidates any pending ledge grab.
+		_ledge_coyote_timer      = 0.0
+		_ledge_grab_buffer_timer = 0.0
 	else:
 		_ledge_coyote_timer      = maxf(_ledge_coyote_timer      - delta, 0.0)
 		_ledge_grab_buffer_timer = maxf(_ledge_grab_buffer_timer - delta, 0.0)
@@ -1119,18 +1143,24 @@ func _is_on_climbable_wall() -> bool:
 	return false
 
 # ---------------------------------------------------------------------------
-# STAND CHECK
-# Returns true if there is vertical clearance for the player to stand up.
-# Temporarily enables the standing shape and uses test_move to detect any
-# ceiling geometry that would block the transition from duck/crawl to IDLE/RUN.
+# STAND SHAPE TEST
+# Tests whether the standing collision shape would overlap geometry at the
+# given world-space transform.  Saves and restores the ORIGINAL disabled flags
+# so this is safe to call from any state without corrupting the active shape.
 # ---------------------------------------------------------------------------
-func _can_stand() -> bool:
+func _test_stand_shape_at(target: Transform2D) -> bool:
+	var stand_was := _collision_stand.disabled
+	var duck_was  := _collision_duck.disabled
 	_collision_stand.disabled = false
 	_collision_duck.disabled  = true
-	var blocked := test_move(global_transform, Vector2.ZERO)
-	_collision_stand.disabled = true
-	_collision_duck.disabled  = false
-	return not blocked
+	var hit := test_move(target, Vector2.ZERO)
+	_collision_stand.disabled = stand_was
+	_collision_duck.disabled  = duck_was
+	return hit
+
+# Returns true if there is vertical clearance to stand at the current position.
+func _can_stand() -> bool:
+	return not _test_stand_shape_at(global_transform)
 
 # ---------------------------------------------------------------------------
 # STATE UPDATER
@@ -1140,6 +1170,14 @@ func _can_stand() -> bool:
 func _update_state() -> void:
 	# Never interrupt an active dash from outside _process_dash().
 	if state == State.DASH and _dash_timer > 0.0:
+		return
+
+	# When wall climbing against a ceiling, move_and_slide() may report only the
+	# ceiling normal that frame, making _is_on_climbable_wall() briefly return
+	# false and causing a one-frame drop to FALL/WALL_SLIDE → animation flicker.
+	# test_move is used here for the same reason as in _process_wall_climb:
+	# is_on_ceiling() flip-flops so test_move is the stable check.
+	if state == State.WALL_CLIMB and test_move(global_transform, Vector2(0.0, -8.0)):
 		return
 
 	# Ledge and background-hold states are managed entirely by their own
@@ -1179,8 +1217,16 @@ func _update_state() -> void:
 		#    ledge is present. This must beat wall climb so the player can't
 		#    climb straight past a ledge with grip held.
 		if can_grip and _ledge_grab_cooldown <= 0.0 \
+				and not test_move(global_transform, Vector2(0.0, -8.0)) \
 				and (_ledge_coyote_timer > 0.0 or _ledge_grab_buffer_timer > 0.0):
-			_set_state(State.LEDGE_HANG)
+			# Test the ledge-climb landing spot before committing to a hang.
+			# Uses _ledge_detected_y (the actual snap base) for accuracy, and the
+			# safe helper so the active collision shape is never corrupted.
+			var dest_pos := Vector2(
+				global_position.x + float(_facing_direction) * 14.5,
+				_ledge_detected_y - ledge_hang_snap_up - 39.0)
+			if not _test_stand_shape_at(Transform2D(0.0, dest_pos)):
+				_set_state(State.LEDGE_HANG)
 
 		# 2. WALL CLIMB — grip held + on climbable wall, no ledge in the way.
 		elif _is_on_climbable_wall() and _grip_held and can_grip:

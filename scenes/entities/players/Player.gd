@@ -127,6 +127,10 @@ signal player_died
 ## Pixels to nudge the player upward the moment they grab a ledge.
 ## Increase to make the hands appear higher on the ledge edge.
 @export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 0.0
+## Extra pixels to drop the player down when grabbing a ledge while falling
+## (velocity.y > 0).  Grabs from below are unaffected — this only shifts the
+## snap point for the "dropped past a ledge" case so the hang reads lower.
+@export_range(0.0, 20.0, 1.0, "suffix:px") var ledge_hang_fall_snap: float = 6.0
 
 # HoldGrabMode must be declared before the @export below uses it as a type.
 # GDScript resolves @export type annotations at parse time — forward references fail.
@@ -723,7 +727,7 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 		_start_wall_jump()
 		return
 
-	elif _up_pressed:
+	elif _up_pressed or _up_held:
 		# Before climbing, verify the landing spot has room for the standing shape.
 		# If a real ceiling blocks the destination the player cannot pull up.
 		var dest := Transform2D(0.0,
@@ -1462,7 +1466,10 @@ func _set_state(new_state: State) -> void:
 			# Snap to the Y recorded when the raycasts first saw the ledge, then
 			# apply the visual nudge.  This keeps the hang height consistent whether
 			# the grab fired immediately or via the coyote / buffer window.
-			global_position.y = _ledge_detected_y - ledge_hang_snap_up
+			# When falling (velocity.y > 0) add an extra downward offset so the
+			# player reads lower on the ledge edge — grabs from below are unaffected.
+			var _fall_offset := ledge_hang_fall_snap if velocity.y > 0.0 else 0.0
+			global_position.y = _ledge_detected_y - ledge_hang_snap_up + _fall_offset
 			_sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
 		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
 		State.HANG_IDLE:

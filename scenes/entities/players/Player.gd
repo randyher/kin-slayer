@@ -38,6 +38,13 @@ signal player_died
 # at runtime — Godot will apply changes instantly so you can dial in the feel
 # without restarting the scene.
 
+@export_group("Movement Abilities")
+## Master switch for all dashing — ground and air. When off, no dash can fire.
+@export var dash_enabled: bool = true
+## Master switch for wall climbing and ledge grabbing. When off, the player
+## cannot grip walls or auto-grab ledges.
+@export var climbing_enabled: bool = true
+
 @export_group("Movement")
 ## Top horizontal speed in pixels per second.
 @export_range(50.0, 600.0, 10.0, "suffix:px/s") var move_speed: float = 200.0
@@ -120,8 +127,6 @@ signal player_died
 @export_range(0.0, 3.0, 0.1, "suffix:s") var stamina_regen_delay: float = 1.0
 ## Max upward speed when pressing jump while gripping a wall.
 @export_range(0.0, 300.0, 5.0, "suffix:px/s") var wall_climb_speed: float = 120.0
-## Single toggle that disables BOTH wall climbing AND automatic ledge grabbing.
-@export var wall_climb_enabled: bool = true
 ## If false, LedgeHangIdle does not drain stamina — player can hang indefinitely.
 @export var ledge_hang_idle_drains_stamina: bool = true
 ## Pixels to nudge the player upward the moment they grab a ledge.
@@ -131,6 +136,10 @@ signal player_died
 ## (velocity.y > 0).  Grabs from below are unaffected — this only shifts the
 ## snap point for the "dropped past a ledge" case so the hang reads lower.
 @export_range(0.0, 20.0, 1.0, "suffix:px") var ledge_hang_fall_snap: float = 6.0
+## Extra pixels to raise the player up when grabbing a ledge while rising
+## (velocity.y < 0).  Grabs from above are unaffected — mirrors ledge_hang_fall_snap
+## for the approach-from-below case so the hang reads higher on the ledge edge.
+@export_range(0.0, 20.0, 1.0, "suffix:px") var ledge_hang_rise_snap: float = 0.0
 
 # HoldGrabMode must be declared before the @export below uses it as a type.
 # GDScript resolves @export type annotations at parse time — forward references fail.
@@ -586,7 +595,7 @@ func _process_ground(input: Vector2, delta: float) -> void:
 		_start_jump()
 
 	# --- Dash ---
-	if _dash_pressed and _dash_cooldown_timer <= 0.0:
+	if dash_enabled and _dash_pressed and _dash_cooldown_timer <= 0.0:
 		_start_dash(input.x)
 
 # ---------------------------------------------------------------------------
@@ -728,19 +737,18 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 		return
 
 	elif _up_pressed or _up_held:
-		# Before climbing, verify the landing spot has room for the standing shape.
-		# If a real ceiling blocks the destination the player cannot pull up.
-		var dest := Transform2D(0.0,
-				global_position + Vector2(float(_facing_direction) * 14.5, -39.0))
-		# Exception: when hanging from a moving platform (AnimatableBody2D) the
-		# platform surface is often already inside the destination zone — especially
-		# when the platform is moving upward into that space.
-		# _test_stand_shape_at() would detect it and falsely block the climb.
-		# The platform is what the player is climbing ONTO, not a ceiling stopping them,
-		# so we skip the check and always allow the pull-up on a moving platform.
+		# Check for a real ceiling by sweeping the standing capsule straight up 39px.
+		# The original check tested a forward+upward destination position, which put
+		# the capsule partially inside the wall the player is hanging on — any ledge
+		# that is part of a continuous wall falsely reported "blocked" and silently
+		# swallowed the input.  A straight-up sweep avoids the side wall entirely
+		# (moving up does not intersect a vertical surface beside the player) and
+		# correctly detects only horizontal ceilings directly overhead.
+		# Moving platforms are bypassed: their surface shows up in the upward sweep
+		# but is the thing the player is climbing onto, not a blocking ceiling.
 		var hanging_body := _ledge_check_lower.get_collider()
 		var on_moving_platform := hanging_body is AnimatableBody2D
-		if on_moving_platform or not _test_stand_shape_at(dest):
+		if on_moving_platform or not test_move(global_transform, Vector2(0.0, -39.0)):
 			_ledge_hang_position = global_position   # save for climb-up offset
 			# Block re-grab for a moment after the climb finishes.
 			# Without this, _update_state() runs the frame LEDGE_CLIMB ends,
@@ -1109,7 +1117,7 @@ func _process_air(input: Vector2, delta: float) -> void:
 		_jump_buffer_timer = jump_buffer_time
 
 	# --- Air dash ---
-	if _dash_pressed and air_dash_allowed:
+	if dash_enabled and _dash_pressed and air_dash_allowed:
 		if _dash_cooldown_timer <= 0.0 and _air_dashes_used < air_dashes_allowed:
 			_air_dashes_used += 1
 			_start_dash(input.x)
@@ -1129,7 +1137,7 @@ func _process_dash(input: Vector2, delta: float) -> void:
 	# --- Chain air dash: allow a new dash press to fire before this one ends ---
 	# Without this, pressing dash during the 0.18s window would lose the input
 	# entirely because _process_air never runs while state == DASH.
-	if not is_on_floor() and _dash_pressed and air_dash_allowed:
+	if dash_enabled and not is_on_floor() and _dash_pressed and air_dash_allowed:
 		if _dash_cooldown_timer <= 0.0 and _air_dashes_used < air_dashes_allowed:
 			_air_dashes_used += 1
 			_start_dash(input.x)
@@ -1350,7 +1358,7 @@ func _update_state() -> void:
 		return
 
 	# Evaluated in both branches below, so defined once here.
-	var can_grip := wall_climb_enabled and not _stamina_exhausted and _stamina > 0.0
+	var can_grip := climbing_enabled and not _stamina_exhausted and _stamina > 0.0
 
 	if is_on_floor():
 		# Wall climb takes priority even from the ground — if the player is
@@ -1466,10 +1474,10 @@ func _set_state(new_state: State) -> void:
 			# Snap to the Y recorded when the raycasts first saw the ledge, then
 			# apply the visual nudge.  This keeps the hang height consistent whether
 			# the grab fired immediately or via the coyote / buffer window.
-			# When falling (velocity.y > 0) add an extra downward offset so the
-			# player reads lower on the ledge edge — grabs from below are unaffected.
+			# Directional snap: fall nudges down, rise nudges up, neutral uses snap_up only.
 			var _fall_offset := ledge_hang_fall_snap if velocity.y > 0.0 else 0.0
-			global_position.y = _ledge_detected_y - ledge_hang_snap_up + _fall_offset
+			var _rise_offset := ledge_hang_rise_snap if velocity.y < 0.0 else 0.0
+			global_position.y = _ledge_detected_y - ledge_hang_snap_up + _fall_offset - _rise_offset
 			_sprite.play("LedgeHang")   # _on_animation_finished transitions to LedgeHangIdle
 		State.LEDGE_CLIMB: _sprite.play("LedgeClimb")  # _on_animation_finished transitions to IDLE
 		State.HANG_IDLE:
@@ -1534,6 +1542,14 @@ func _on_animation_finished() -> void:
 		_ledge_check_lower.force_raycast_update()
 		_ledge_coyote_timer      = 0.0
 		_ledge_grab_buffer_timer = 0.0
+		# Clear any platform velocity that accumulated during the climb animation.
+		# _process_ledge_climb() zeros velocity each frame, but the platform carry
+		# block re-adds _platform_velocity afterward (LEDGE_CLIMB is surface-attached
+		# and _was_on_floor is false, so the upward clamp doesn't apply).  That
+		# leftover velocity.y < 0 carries into the first IDLE frame and makes
+		# _update_state() see airborne + upward velocity → JUMP state flicker.
+		velocity          = Vector2.ZERO
+		_platform_velocity = Vector2.ZERO
 		_set_state(State.IDLE)
 
 # ---------------------------------------------------------------------------

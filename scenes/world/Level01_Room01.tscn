@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://b8prhjk36efsp" path="res://assets/tilesets/Props.png" id="5_ijdsj"]
 [ext_resource type="Texture2D" uid="uid://c15plkcxkhseb" path="res://assets/tilesets/magic-castle-sprites.png" id="9_gw4mb"]
 [ext_resource type="Script" uid="uid://b5p5fg0qrutn5" path="res://scripts/components/MovingPlatformSimple.gd" id="12_aimob"]
+[ext_resource type="PackedScene" path="res://scenes/entities/Spike.tscn" id="spike_scene"]
 [ext_resource type="Texture2D" uid="uid://bp37yajpcd47h" path="res://assets/sprites/environments/magic-castle/magic-castle-background.png" id="mc_bg"]
 [ext_resource type="Texture2D" uid="uid://dle44gyxm5v4j" path="res://assets/sprites/environments/magic-castle/magic-castle-tiles.png" id="mc_tiles"]
 [ext_resource type="Texture2D" uid="uid://5bq2kod6vka" path="res://assets/sprites/environments/magic-castle/torch-anim-with-bg.png" id="torch_bg"]
@@ -1310,6 +1311,10 @@ position = Vector2(0, -280)
 
 [node name="SpawnBottom" parent="." index="9"]
 position = Vector2(0, 280)
+
+# TEST SPIKE — reposition as needed to sit below a platform where a player might fall
+[node name="TestSpike" parent="." instance=ExtResource("spike_scene")]
+position = Vector2(0, 240)
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="." index="10" unique_id=1763209166]
 

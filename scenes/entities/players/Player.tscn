@@ -84,6 +84,11 @@
 [ext_resource type="Texture2D" uid="uid://dpkw14a8x0q4i" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip12.png" id="ff12"]
 [ext_resource type="Texture2D" uid="uid://bq8rrmw2x2gge" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip13.png" id="ff13"]
 [ext_resource type="Texture2D" uid="uid://bhmtqn8kflbyv" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip14.png" id="ff14"]
+# Hit animation — plays on hazard contact before respawn
+# Both P1 and P2 use this via shared Player.tscn
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit01.png" id="h1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit02.png" id="h2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit03.png" id="h3"]
 [ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
 [ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
 [ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
@@ -492,6 +497,20 @@ animations = [{
 "loop": false,
 "name": &"DoubleJump",
 "speed": 14.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("h1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("h2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("h3")
+}],
+"loop": false,
+"name": &"Hit",
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

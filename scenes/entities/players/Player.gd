@@ -156,6 +156,16 @@ enum HoldGrabMode {
 ## Horizontal speed while moving along a background hold.
 @export_range(0.0, 300.0, 5.0, "suffix:px/s") var hang_move_speed: float = 80.0
 
+@export_group("Respawn")
+## Name of the Marker2D node in the room scene that marks this player's spawn point.
+## P1 uses "SpawnLeft", P2 uses "SpawnRight".
+## Set this in the Inspector per player instance in each room scene.
+@export var spawn_marker_name: String = "SpawnLeft"
+## Seconds between the Hit animation finishing and teleporting to the spawn point.
+@export_range(0.0, 2.0, 0.1, "suffix:s") var respawn_delay: float = 0.6
+## If true, the player flickers briefly after teleporting to signal the respawn.
+@export var flash_on_respawn: bool = true
+
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
 @export_range(100.0, 1200.0, 10.0, "suffix:px/s") var dash_speed: float = 380.0
@@ -311,6 +321,15 @@ var _wall_coyote_timer: float = 0.0
 # the coyote window, when is_on_wall() is no longer true.
 var _last_wall_normal: Vector2 = Vector2.ZERO
 
+# Set true during the full respawn sequence (Hit animation → pause → teleport).
+# Guards trigger_respawn() so multiple overlapping spike HitZones can't stack
+# respawn calls on the same frame.
+var _is_respawning: bool = false
+
+# Cached world position of the spawn Marker2D resolved in _ready().
+# Teleport destination for trigger_respawn().
+var _spawn_point: Vector2 = Vector2.ZERO
+
 # ---------------------------------------------------------------------------
 # READY
 # ---------------------------------------------------------------------------
@@ -338,6 +357,15 @@ func _ready() -> void:
 	# enters or leaves the player's detection area.
 	_hold_detector.area_entered.connect(_on_hold_area_entered)
 	_hold_detector.area_exited.connect(_on_hold_area_exited)
+	# Locate the spawn Marker2D by name in the current scene tree.
+	# P1 uses SpawnLeft, P2 uses SpawnRight.
+	# Set spawn_marker_name in the Inspector per player instance in each room scene.
+	var spawn_node := get_tree().root.find_child(spawn_marker_name, true, false)
+	if spawn_node:
+		_spawn_point = spawn_node.global_position
+	else:
+		_spawn_point = global_position
+		push_warning("Player: spawn marker '%s' not found — using start position as fallback." % spawn_marker_name)
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -1561,6 +1589,76 @@ func _on_animation_finished() -> void:
 		velocity          = Vector2.ZERO
 		_platform_velocity = Vector2.ZERO
 		_set_state(State.IDLE)
+
+# ---------------------------------------------------------------------------
+# RESPAWN — called by hazards (e.g. Spike.gd) on player contact.
+# Celeste-style reset: no HP lost, play Hit animation, brief pause, teleport.
+# ---------------------------------------------------------------------------
+func trigger_respawn() -> void:
+	# FUTURE — to add HP damage on spike contact, call take_damage(1) here,
+	# before _sprite.play("Hit"). This connects to the existing HP system
+	# in Player.gd without any other changes needed.
+
+	# Prevent double triggers if the player overlaps multiple spike HitZones
+	# at the same time.
+	if _is_respawning:
+		return
+	_is_respawning = true
+
+	# Stop all movement immediately.
+	velocity = Vector2.ZERO
+
+	# Disable physics so the player can't move or be affected by gravity
+	# while the Hit animation is playing.
+	set_physics_process(false)
+
+	# Disable HoldDetector to prevent accidentally grabbing a background hold
+	# mid-respawn.
+	_hold_detector.monitoring = false
+
+	# Play the Hit animation once. It is non-looping so it stops on the last
+	# frame automatically.
+	_sprite.play(&"Hit")
+
+	# Wait for the full Hit animation to finish before doing anything else.
+	await _sprite.animation_finished
+
+	# Short pause so the hit registers visually before the teleport.
+	await get_tree().create_timer(respawn_delay).timeout
+
+	# Teleport to the spawn point resolved in _ready().
+	global_position = _spawn_point
+
+	# Re-enable physics and input.
+	set_physics_process(true)
+	_hold_detector.monitoring = true
+
+	# Clear any velocity that accumulated before the respawn.
+	velocity          = Vector2.ZERO
+	_platform_velocity = Vector2.ZERO
+
+	# Return to IDLE cleanly — resets state, collision capsule, and animation.
+	_set_state(State.IDLE)
+
+	# Brief flicker to signal the respawn visually to the player.
+	if flash_on_respawn:
+		await _flash_respawn()
+
+	_is_respawning = false
+
+
+func _flash_respawn() -> void:
+	# Tween modulate.a (opacity) between 0 and 1 three times rapidly using the
+	# existing modulate property on the player node.
+	for i in 3:
+		var tween := create_tween()
+		tween.tween_property(self, "modulate:a", 0.0, 0.1)
+		await tween.finished
+		tween = create_tween()
+		tween.tween_property(self, "modulate:a", 1.0, 0.1)
+		await tween.finished
+	# Guarantee full opacity in case something interrupted mid-flash.
+	modulate.a = 1.0
 
 # ---------------------------------------------------------------------------
 # HP — PUBLIC API

@@ -598,6 +598,16 @@ func _process_ground(input: Vector2, delta: float) -> void:
 	if dash_enabled and _dash_pressed and _dash_cooldown_timer <= 0.0:
 		_start_dash(input.x)
 
+	# --- Look Up ---
+	# Only while idle on the ground with no horizontal input.
+	# The animation is non-looping so it plays through and freezes on the last
+	# frame while up is held — releasing up returns to the Idle loop.
+	if _up_held and input.x == 0:
+		if _sprite.animation != &"LookUp":
+			_sprite.play("LookUp")
+	elif _sprite.animation == &"LookUp":
+		_sprite.play("Idle")
+
 # ---------------------------------------------------------------------------
 # DUCK
 # Player is crouched on the ground. Horizontal movement is suppressed.

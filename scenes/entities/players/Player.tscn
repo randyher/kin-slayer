@@ -124,6 +124,9 @@
 [ext_resource type="Texture2D" uid="uid://cw3gl5l8etyqx" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang04.png" id="lh4"]
 [ext_resource type="Texture2D" uid="uid://cahkxjvw064qa" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang05.png" id="lh5"]
 [ext_resource type="Texture2D" uid="uid://1wxppcbyblpn" path="res://assets/sprites/players/p1/LedgeHang/LedgeHang06.png" id="lh6"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LookUp/LookUp01.png" id="lu1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LookUp/LookUp02.png" id="lu2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/LookUp/LookUp03.png" id="lu3"]
 [ext_resource type="Texture2D" uid="uid://d2ucectlgtvoy" path="res://assets/sprites/players/p1/Run/Run01.png" id="r1"]
 [ext_resource type="Texture2D" uid="uid://cobap7x2n3oba" path="res://assets/sprites/players/p1/Run/Run02.png" id="r2"]
 [ext_resource type="Texture2D" uid="uid://1yeg4fhijbmx" path="res://assets/sprites/players/p1/Run/Run03.png" id="r3"]
@@ -658,6 +661,20 @@ animations = [{
 }],
 "loop": true,
 "name": &"LedgeHangIdle",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("lu1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lu2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("lu3")
+}],
+"loop": false,
+"name": &"LookUp",
 "speed": 8.0
 }, {
 "frames": [{

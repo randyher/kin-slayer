@@ -96,11 +96,11 @@ signal player_died
 ## Seconds after the ledge raycasts stop detecting a grabbable ledge during which
 ## the grab can still fire.  Mirrors floor coyote time — forgives the player drifting
 ## a frame or two past the ledge edge before the grab registers.
-@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_coyote_time: float = 0.10
+@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_coyote_time: float = 0.20
 ## Seconds after the ledge raycasts first detect a grabbable ledge during which
 ## the grab will fire the moment can_grip becomes true.  Forgives briefly exhausted
 ## stamina or an active cooldown at the exact frame the ledge is passed.
-@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_grab_buffer_time: float = 0.10
+@export_range(0.0, 0.3, 0.01, "suffix:s") var ledge_grab_buffer_time: float = 0.15
 
 @export_group("Stamina")
 ## Total stamina pool. Drains while climbing or hanging; refills when resting.
@@ -126,7 +126,7 @@ signal player_died
 @export var ledge_hang_idle_drains_stamina: bool = true
 ## Pixels to nudge the player upward the moment they grab a ledge.
 ## Increase to make the hands appear higher on the ledge edge.
-@export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 5.0
+@export_range(0.0, 32.0, 1.0, "suffix:px") var ledge_hang_snap_up: float = 0.0
 
 # HoldGrabMode must be declared before the @export below uses it as a type.
 # GDScript resolves @export type annotations at parse time — forward references fail.
@@ -1517,6 +1517,16 @@ func _on_animation_finished() -> void:
 		# on top of the ledge, and forward by a small step so they clear the edge.
 		global_position.y -= 39.0
 		global_position.x += float(_facing_direction) * 14.5
+		# Force raycasts to reflect the new position before the next physics frame.
+		# _on_animation_finished fires during _process() (between physics frames).
+		# Without this, _tick_timers() in the next _physics_process() reads the stale
+		# raycast state from the hang position (lower ray still touching the wall),
+		# sees _ledge_in_range = true, and re-feeds the coyote/buffer timers —
+		# overwriting the zeroes below and triggering a re-grab into nothing.
+		_ledge_check_upper.force_raycast_update()
+		_ledge_check_lower.force_raycast_update()
+		_ledge_coyote_timer      = 0.0
+		_ledge_grab_buffer_timer = 0.0
 		_set_state(State.IDLE)
 
 # ---------------------------------------------------------------------------

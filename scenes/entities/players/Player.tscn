@@ -852,6 +852,7 @@ size = Vector2(14, 0)
 [node name="Player" type="CharacterBody2D" unique_id=442864075]
 script = ExtResource("1_k3m7n")
 stamina_max = 60.0
+ledge_hang_snap_up = 0.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=368623655]
 sprite_frames = SubResource("SpriteFrames_anim")
@@ -871,7 +872,7 @@ position = Vector2(0, -4)
 target_position = Vector2(12, 0)
 
 [node name="LedgeCheckLower" type="RayCast2D" parent="." unique_id=1106861895]
-position = Vector2(0, 1)
+position = Vector2(0, 8)
 target_position = Vector2(12, 0)
 
 [node name="HoldDetector" type="Area2D" parent="." unique_id=2052591253]

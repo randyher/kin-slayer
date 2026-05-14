@@ -283,6 +283,11 @@ var _hold_grab_cooldown : float = 0.0
 # player can pull themselves up with the up input instead.
 var _wall_climb_cooldown : float = 0.0
 
+# The platform velocity that was added to `velocity` last frame.
+# Stripped out before state processing so friction only acts on the
+# player-controlled portion of velocity, then re-added after.
+var _platform_velocity: Vector2 = Vector2.ZERO
+
 # Wall coyote time — counts down after the player leaves a wall slide.
 # While > 0 a wall jump is still permitted even though is_on_wall() is false.
 # Mirrors _coyote_timer exactly, but for walls instead of floors.
@@ -299,6 +304,15 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 func _ready() -> void:
 	add_to_group("players")  # lets RoomManager, RoomCamera, and HUD find all players
 	modulate = player_color  # apply co-op tint to the entire node (sprite + children)
+	# Keep the player pressed against a downward-moving platform.
+	# Without this, when a platform dips faster than gravity pulls the player
+	# down, is_on_floor() goes false for one frame — triggering a FALL state
+	# flicker and resetting coyote time even though the player is still riding.
+	# 20 px gives a buffer of ~7 frames at 160 px/s (MovingPlatformSimple peak),
+	# covering the case where the carry velocity is detected one or two frames
+	# late.  Snap does not apply while jumping (velocity.y < 0) so it won't
+	# prevent the player from leaving the floor normally.
+	floor_snap_length = 20.0
 	_sprite.play("Idle")
 	_sprite.animation_finished.connect(_on_animation_finished)
 	_stamina = stamina_max   # start every session with a full stamina bar
@@ -347,6 +361,22 @@ func _physics_process(delta: float) -> void:
 		elif not _grip_held:
 			_grip_pressed_before_overlap = false
 
+	# Strip last frame's HORIZONTAL platform contribution before state processing.
+	# Friction slides velocity.x toward 0 each frame — if the platform's horizontal
+	# speed is still baked in, friction fights it and the player slowly slides
+	# backward on a horizontal platform.  Stripping only .x lets friction act on
+	# the player-controlled portion without touching vertical velocity.
+	#
+	# WHY only .x and not .y:
+	#   Vertical carry never accumulates — move_and_slide() zeroes velocity.y the
+	#   moment the player touches the floor each frame, so there is nothing to undo.
+	#   Stripping .y was the source of the duck-on-descending-platform FALL bug:
+	#   if get_collider_velocity() returned zero one frame (intermittent detection),
+	#   the strip removed last frame's large downward value with nothing re-added,
+	#   producing a large upward velocity spike.  Godot disables floor_snap_length
+	#   when velocity.y < 0, so the snap never fired and is_on_floor() went false.
+	velocity.x -= _platform_velocity.x
+
 	# --- Run the logic for whichever state is currently active ---
 	match state:
 		State.IDLE, State.RUN:
@@ -373,6 +403,70 @@ func _physics_process(delta: float) -> void:
 			_process_hang_edge(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
+
+	# Carry the player when attached to a moving platform surface.
+	#
+	# WHY this is needed:
+	#   Godot 4 does NOT automatically move CharacterBody2D with a moving body.
+	#   We must read the colliding body's velocity and add it ourselves.
+	#   get_collider_velocity() reads the velocity the physics server computed
+	#   from the AnimatableBody2D's position delta (sync_to_physics = true).
+	#
+	# WHY limited to surface-attached states:
+	#   During JUMP / FALL the player may briefly graze a moving platform.
+	#   Applying that body's velocity mid-air would feel like a random kick.
+	#   We only carry in states where the player is intentionally gripping or
+	#   standing on a surface.
+	#
+	# WHY here (after state processing, before move_and_slide):
+	#   State functions set the player's own velocity (friction, gravity, climb
+	#   speed, etc.).  Adding platform velocity AFTER that preserves it fully —
+	#   friction only ever acts on the player-controlled portion.
+	_platform_velocity = Vector2.ZERO
+
+	var _is_surface_attached := (
+		_was_on_floor          or   # IDLE / RUN / DUCK / CRAWL / DASH on ground
+		state == State.WALL_CLIMB  or
+		state == State.WALL_SLIDE  or
+		state == State.LEDGE_HANG  or
+		state == State.LEDGE_CLIMB
+	)
+
+	if _is_surface_attached:
+		# --- Slide-collision path (floor + wall states) ---
+		# get_slide_collision() returns hits from the PREVIOUS frame's
+		# move_and_slide().  Wall states press into the wall each frame
+		# (velocity.x = facing * 20) so there is always a fresh wall hit here.
+		# We take the first collision whose collider has a non-zero velocity.
+		for i in get_slide_collision_count():
+			var col_vel := get_slide_collision(i).get_collider_velocity()
+			if col_vel != Vector2.ZERO:
+				_platform_velocity = col_vel
+				break
+
+		# --- Raycast fallback (LEDGE_HANG and LEDGE_CLIMB) ---
+		# These states hold velocity at Vector2.ZERO, so move_and_slide()
+		# produces no collisions and the loop above finds nothing.
+		# LedgeCheckLower already points at the exact wall the player grabbed;
+		# if that body is a MovingPlatform we read its public velocity directly.
+		if _platform_velocity == Vector2.ZERO \
+				and (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB):
+			var ledge_body := _ledge_check_lower.get_collider()
+			if ledge_body is MovingPlatform:
+				_platform_velocity = (ledge_body as MovingPlatform).velocity
+
+	# When standing on a floor, the platform moving UP is already handled by
+	# physics overlap resolution — the platform rises into the player's feet
+	# and Godot pushes the player up automatically.  If we ALSO add upward
+	# velocity here, the player lifts off the floor before physics resolves
+	# the overlap, is_on_floor() goes false, and FALL / DUCK-glitch triggers.
+	# Clamp to zero-or-down so we only carry the player when the floor drops
+	# away (downward platform movement that gravity alone can't track).
+	# Wall and ledge states keep the full velocity — they need both axes.
+	if _was_on_floor:
+		_platform_velocity.y = maxf(_platform_velocity.y, 0.0)
+
+	velocity += _platform_velocity
 
 	# --- Apply the final velocity to the CharacterBody2D ---
 	move_and_slide()
@@ -494,7 +588,19 @@ func _process_ground(input: Vector2, delta: float) -> void:
 # ---------------------------------------------------------------------------
 # DUCK
 # Player is crouched on the ground. Horizontal movement is suppressed.
-# Releasing the down key exits back to IDLE. Jump input still fires a jump.
+# Jump input still fires a jump. Exiting back to IDLE is handled entirely
+# by _update_state() after move_and_slide() — NOT here.
+#
+# WHY the exit is not done here:
+#   Calling _set_state(IDLE) mid-frame swaps the collision capsule from the
+#   short duck shape to the taller standing shape BEFORE move_and_slide()
+#   runs.  On a downward-moving platform the standing capsule's bottom sits
+#   above the platform surface (the floor drifted a few pixels this frame),
+#   so move_and_slide() sees no floor contact, is_on_floor() returns false,
+#   and _update_state() triggers a one-frame FALL.
+#   Leaving the capsule swap to _update_state() (which runs after
+#   move_and_slide()) means the duck capsule is always active when the player
+#   touches the floor, so contact is never lost during the transition.
 # ---------------------------------------------------------------------------
 func _process_duck(input: Vector2, _delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * _delta)
@@ -502,9 +608,6 @@ func _process_duck(input: Vector2, _delta: float) -> void:
 
 	if _jump_pressed or _jump_buffer_timer > 0.0:
 		_start_jump()
-	elif not _down_held and _can_stand():
-		_set_state(State.IDLE)
-	# If down is released but ceiling blocks standing, stay ducked silently.
 
 # ---------------------------------------------------------------------------
 # CRAWL MOVEMENT
@@ -603,8 +706,12 @@ func _process_wall_climb(input: Vector2, delta: float) -> void:
 # Jump → LEDGE_CLIMB.  Down or stamina empty → FALL.
 # ---------------------------------------------------------------------------
 func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
-	# Override all velocity — the player is locked to the ledge.
-	velocity = Vector2.ZERO
+	# Press very slightly toward the wall so move_and_slide() generates
+	# a wall collision every frame.  Without this, velocity is zero and
+	# no collision is recorded — the carry code's get_collider_velocity()
+	# loop finds nothing and the player doesn't move with the platform.
+	# 4 px/s is imperceptible; the wall collision cancels it immediately.
+	velocity = Vector2(float(_facing_direction) * 4.0, 0.0)
 
 	if _jump_pressed:
 		# Wall jump away from the ledge. _last_wall_normal is cached from the
@@ -618,11 +725,25 @@ func _process_ledge_hang(_input: Vector2, _delta: float) -> void:
 
 	elif _up_pressed:
 		# Before climbing, verify the landing spot has room for the standing shape.
-		# If a ceiling blocks the destination the player cannot pull up.
+		# If a real ceiling blocks the destination the player cannot pull up.
 		var dest := Transform2D(0.0,
 				global_position + Vector2(float(_facing_direction) * 14.5, -39.0))
-		if not _test_stand_shape_at(dest):
+		# Exception: when hanging from a moving platform (AnimatableBody2D) the
+		# platform surface is often already inside the destination zone — especially
+		# when the platform is moving upward into that space.
+		# _test_stand_shape_at() would detect it and falsely block the climb.
+		# The platform is what the player is climbing ONTO, not a ceiling stopping them,
+		# so we skip the check and always allow the pull-up on a moving platform.
+		var hanging_body := _ledge_check_lower.get_collider()
+		var on_moving_platform := hanging_body is AnimatableBody2D
+		if on_moving_platform or not _test_stand_shape_at(dest):
 			_ledge_hang_position = global_position   # save for climb-up offset
+			# Block re-grab for a moment after the climb finishes.
+			# Without this, _update_state() runs the frame LEDGE_CLIMB ends,
+			# the ledge raycasts may still see the edge, and the coyote/buffer
+			# timers haven't expired — so the grab fires again immediately,
+			# leaving the player hanging off thin air above the platform.
+			_ledge_grab_cooldown = 0.5
 			_set_state(State.LEDGE_CLIMB)
 
 	elif _down_held and _grip_held and not _stamina_exhausted:

@@ -853,7 +853,6 @@ size = Vector2(14, 0)
 script = ExtResource("1_k3m7n")
 stamina_max = 60.0
 ledge_hang_fall_snap = 3.0
-air_dash_allowed = false
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=368623655]
 sprite_frames = SubResource("SpriteFrames_anim")

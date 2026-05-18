@@ -2,9 +2,9 @@
 ## Attach to the Node2D root of any Room scene.
 ##
 ## Each room knows its left and right neighbours (set in the Inspector),
-## detects when all players walk into an exit, and tells the camera to
-## start a transition.  The camera and RoomManager do the heavy lifting —
-## this script only counts bodies and fires a signal.
+## detects when a player walks into an exit, and tells that player to start
+## exiting while notifying RoomManager. The manager fires all_players_exited
+## once every player has gone off screen.
 
 class_name Room
 extends Node2D
@@ -23,14 +23,6 @@ extends Node2D
 @export var next_room_bottom: PackedScene
 
 # ---------------------------------------------------------------------------
-# SIGNAL
-# ---------------------------------------------------------------------------
-
-## Emitted once ALL players are standing inside the same exit zone.
-## direction will be "right" or "left".
-signal exit_triggered(direction: String)
-
-# ---------------------------------------------------------------------------
 # NODE REFERENCES  (resolved automatically when the scene loads)
 # ---------------------------------------------------------------------------
 
@@ -45,17 +37,6 @@ signal exit_triggered(direction: String)
 @onready var spawn_bottom : Marker2D = $SpawnBottom
 
 # ---------------------------------------------------------------------------
-# INTERNAL STATE
-# ---------------------------------------------------------------------------
-
-# How many player bodies are currently inside each exit zone.
-# We need ALL of them to be inside before we fire the signal.
-var _in_right  : int = 0
-var _in_left   : int = 0
-var _in_top    : int = 0
-var _in_bottom : int = 0
-
-# ---------------------------------------------------------------------------
 # READY
 # ---------------------------------------------------------------------------
 
@@ -63,55 +44,41 @@ func _ready() -> void:
 	# Use .bind() so we can pass the direction string into a shared handler
 	# without needing four separate callback methods.
 	exit_right.body_entered.connect( _on_body_entered_exit.bind("right"))
-	exit_right.body_exited.connect(  _on_body_exited_exit.bind( "right"))
 	exit_left.body_entered.connect(  _on_body_entered_exit.bind("left"))
-	exit_left.body_exited.connect(   _on_body_exited_exit.bind( "left"))
 	exit_top.body_entered.connect(   _on_body_entered_exit.bind("top"))
-	exit_top.body_exited.connect(    _on_body_exited_exit.bind( "top"))
 	exit_bottom.body_entered.connect(_on_body_entered_exit.bind("bottom"))
-	exit_bottom.body_exited.connect( _on_body_exited_exit.bind( "bottom"))
 
 # ---------------------------------------------------------------------------
 # EXIT DETECTION
 # ---------------------------------------------------------------------------
 
 func _on_body_entered_exit(body: Node2D, direction: String) -> void:
-	# Only count bodies that belong to the "players" group.
-	if not body.is_in_group("players"):
+	if not (body is Player):
 		return
+	var player := body as Player
+
+	# Map direction string to Vector2 and next room scene.
+	var dir_vec: Vector2
+	var next: PackedScene
 	match direction:
-		"right":  _in_right  += 1
-		"left":   _in_left   += 1
-		"top":    _in_top    += 1
-		"bottom": _in_bottom += 1
-	_check_trigger(direction)
+		"right":
+			dir_vec = Vector2.RIGHT
+			next    = next_room
+		"left":
+			dir_vec = Vector2.LEFT
+			next    = prev_room
+		"top":
+			dir_vec = Vector2.UP
+			next    = next_room_top
+		"bottom":
+			dir_vec = Vector2.DOWN
+			next    = next_room_bottom
 
-func _on_body_exited_exit(body: Node2D, direction: String) -> void:
-	if not body.is_in_group("players"):
-		return
-	match direction:
-		"right":  _in_right  = maxi(_in_right  - 1, 0)
-		"left":   _in_left   = maxi(_in_left   - 1, 0)
-		"top":    _in_top    = maxi(_in_top    - 1, 0)
-		"bottom": _in_bottom = maxi(_in_bottom - 1, 0)
+	if next == null:
+		return  # No room connected to this exit — dead end, ignore.
 
-func _check_trigger(direction: String) -> void:
-	var total : int = get_tree().get_nodes_in_group("players").size()
-	if total == 0:
-		return
-
-	var in_zone : int
-	match direction:
-		"right":  in_zone = _in_right
-		"left":   in_zone = _in_left
-		"top":    in_zone = _in_top
-		"bottom": in_zone = _in_bottom
-		_:        in_zone = 0
-
-	# All players must be in the zone — if only one of two has entered,
-	# we wait for the second.
-	if in_zone >= total:
-		exit_triggered.emit(direction)
+	player.start_exit(dir_vec)
+	RoomManager.player_entered_exit(player, direction, next)
 
 # ---------------------------------------------------------------------------
 # CAMERA BOUNDS HELPER

@@ -1,0 +1,70 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://scenes/world/Room.tscn" id="1_room_base"]
+[ext_resource type="PackedScene" uid="uid://b4rnxbhjch0aa" path="res://scenes/world/Level01_Room01.tscn" id="2_room01"]
+
+[sub_resource type="RectangleShape2D" id="Shape_bounds"]
+size = Vector2(1152, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_v"]
+size = Vector2(16, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_h"]
+size = Vector2(1152, 16)
+
+[sub_resource type="RectangleShape2D" id="Shape_floor"]
+size = Vector2(1200, 24)
+
+[node name="Room" instance=ExtResource("1_room_base")]
+next_room_bottom = ExtResource("2_room01")
+
+[node name="RoomBounds" parent="." index="1"]
+position = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="RoomBounds" index="0"]
+position = Vector2(5, 3)
+shape = SubResource("Shape_bounds")
+
+[node name="ExitRight" parent="." index="2"]
+position = Vector2(576, 0)
+
+[node name="CollisionShape2D" parent="ExitRight" index="0"]
+shape = SubResource("Shape_exit_v")
+
+[node name="ExitLeft" parent="." index="3"]
+position = Vector2(-576, 0)
+
+[node name="CollisionShape2D" parent="ExitLeft" index="0"]
+shape = SubResource("Shape_exit_v")
+
+[node name="ExitTop" parent="." index="4"]
+position = Vector2(0, -324)
+
+[node name="CollisionShape2D" parent="ExitTop" index="0"]
+shape = SubResource("Shape_exit_h")
+
+[node name="ExitBottom" parent="." index="5"]
+position = Vector2(0, 324)
+
+[node name="CollisionShape2D" parent="ExitBottom" index="0"]
+shape = SubResource("Shape_exit_h")
+
+[node name="SpawnLeft" parent="." index="6"]
+position = Vector2(-424, 260)
+
+[node name="SpawnRight" parent="." index="7"]
+position = Vector2(424, 260)
+
+[node name="SpawnTop" parent="." index="8"]
+position = Vector2(0, -280)
+
+[node name="SpawnBottom" parent="." index="9"]
+position = Vector2(0, 280)
+
+; Room 02 — paint tiles manually in the Godot editor.
+; Simple floor added here for testing so players don't fall into nothing.
+[node name="Floor" type="StaticBody2D" parent="."]
+position = Vector2(0, 300)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+shape = SubResource("Shape_floor")

@@ -28,6 +28,10 @@ var starting_room : PackedScene = preload("res://scenes/world/Level01_Room01.tsc
 ## class_name is guaranteed to be in scope. Cast to Room at the call site.
 signal room_loaded(room: Node)
 
+## Fired once every player has gone off screen through an exit.
+## RoomCamera listens to this to start the fade transition.
+signal all_players_exited(direction: String, next_room: PackedScene)
+
 # ---------------------------------------------------------------------------
 # PUBLIC STATE
 # ---------------------------------------------------------------------------
@@ -49,6 +53,11 @@ var _cleared_rooms : Dictionary = {}
 # We look for a node named "World" at the scene root; if none exists
 # we fall back to the scene root itself.
 var _room_container : Node = null
+
+# Exit tracking — accumulates per-player exit reports until all are done.
+var _players_exited: Array = []
+var _exit_direction: String = ""
+var _exit_next_room: PackedScene = null
 
 # ---------------------------------------------------------------------------
 # READY
@@ -81,6 +90,11 @@ func _ready() -> void:
 ##            → spawn at SpawnRight marker
 ##   "none"   first load or manual override — use SpawnLeft by default
 func load_room(room_scene: PackedScene, spawn_side: String) -> void:
+	# Reset exit tracking for this new room.
+	_players_exited.clear()
+	_exit_direction = ""
+	_exit_next_room = null
+
 	# --- Remove the old room ---
 	if current_room != null:
 		_room_container.remove_child(current_room)
@@ -105,6 +119,25 @@ func load_room(room_scene: PackedScene, spawn_side: String) -> void:
 	# RoomCamera will receive this and reconnect exit signals + update
 	# next_room / prev_room automatically.
 	room_loaded.emit(current_room)
+
+## Called by Room.gd when a player first enters an exit zone.
+## Records the exit direction and target room (first caller wins).
+func player_entered_exit(player: Node, direction: String, next_room: PackedScene) -> void:
+	if _exit_next_room != null:
+		return  # Direction already locked in by the first player.
+	_exit_direction = direction
+	_exit_next_room = next_room
+
+## Called by Player when it has gone fully off screen.
+## When every player has called this, fires all_players_exited.
+func player_finished_exit(player: Node) -> void:
+	if player in _players_exited:
+		return
+	_players_exited.append(player)
+
+	var all_players := get_tree().get_nodes_in_group("players")
+	if _players_exited.size() >= all_players.size() and _exit_next_room != null:
+		all_players_exited.emit(_exit_direction, _exit_next_room)
 
 ## Call this when the players finish a battle in the current room.
 ## Prevents enemies from respawning if the players come back through here.
@@ -152,8 +185,16 @@ func _spawn_players(spawn_side: String) -> void:
 		# Spread players across the room on first load rather than stacking them.
 		var p1 := players[0] as Node2D
 		var p2 := players[1] as Node2D
-		if room.spawn_left  != null: p1.global_position = room.spawn_left.global_position
-		if room.spawn_right != null: p2.global_position = room.spawn_right.global_position
+		if room.spawn_left != null:
+			if p1 is Player:
+				(p1 as Player).arrive_in_room(room.spawn_left.global_position)
+			else:
+				p1.global_position = room.spawn_left.global_position
+		if room.spawn_right != null:
+			if p2 is Player:
+				(p2 as Player).arrive_in_room(room.spawn_right.global_position)
+			else:
+				p2.global_position = room.spawn_right.global_position
 		return
 
 	var marker : Marker2D
@@ -170,4 +211,8 @@ func _spawn_players(spawn_side: String) -> void:
 	# For transitions, place all players at the entry marker with a small gap.
 	for i : int in players.size():
 		var player := players[i] as Node2D
-		player.global_position = marker.global_position + Vector2(i * 48.0, 0.0)
+		var spawn_pos := marker.global_position + Vector2(i * 48.0, 0.0)
+		if player is Player:
+			(player as Player).arrive_in_room(spawn_pos)
+		else:
+			player.global_position = spawn_pos

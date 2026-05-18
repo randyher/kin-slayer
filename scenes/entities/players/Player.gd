@@ -156,6 +156,12 @@ enum HoldGrabMode {
 ## Horizontal speed while moving along a background hold.
 @export_range(0.0, 300.0, 5.0, "suffix:px/s") var hang_move_speed: float = 80.0
 
+@export_group("Exit")
+## Speed applied in exit direction for top/bottom exits (px/s).
+@export_range(0.0, 500.0, 10.0, "suffix:px/s") var exit_boost_speed: float = 200.0
+## Speed applied for left/right exits (px/s).
+@export_range(0.0, 500.0, 10.0, "suffix:px/s") var exit_horizontal_speed: float = 300.0
+
 @export_group("Respawn")
 ## Name of the Marker2D node in the room scene that marks this player's spawn point.
 ## P1 uses "SpawnLeft", P2 uses "SpawnRight".
@@ -186,7 +192,7 @@ enum HoldGrabMode {
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE, HANG_EDGE }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE, HANG_EDGE, EXITING }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -329,6 +335,11 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 # respawn calls on the same frame.
 var _is_respawning: bool = false
 
+var _exit_direction: Vector2 = Vector2.ZERO
+var _is_exiting: bool = false
+# While > 0, spikes cannot trigger respawn (grace period after room entry).
+var _invincible_timer: float = 0.0
+
 
 # ---------------------------------------------------------------------------
 # READY
@@ -445,6 +456,8 @@ func _physics_process(delta: float) -> void:
 			_process_hang_edge(input, delta)
 		State.DASH:
 			_process_dash(input, delta)
+		State.EXITING:
+			_process_exiting(delta)
 
 	# Carry the player when attached to a moving platform surface.
 	#
@@ -513,6 +526,9 @@ func _physics_process(delta: float) -> void:
 	# --- Apply the final velocity to the CharacterBody2D ---
 	move_and_slide()
 
+	if state == State.EXITING:
+		_check_exit_offscreen()
+
 	# --- Detect landing now that is_on_floor() reflects this frame's collisions ---
 	if is_on_floor() and not floor_last_frame:
 		_on_landed()
@@ -523,7 +539,7 @@ func _physics_process(delta: float) -> void:
 	# so we freeze flip_h to prevent a jarring mirror on direction change.
 	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB
 						 or state == State.HANG_IDLE or state == State.HANG_MOVE
-						 or state == State.HANG_EDGE)
+						 or state == State.HANG_EDGE or state == State.EXITING)
 	if state == State.HANG_EDGE:
 		# ClimbJumpPrepare is a single animation — flip it for the right edge.
 		_sprite.flip_h = (_hang_edge_dir == -1)
@@ -1306,6 +1322,9 @@ func _tick_timers(delta: float) -> void:
 	_dash_cooldown_timer = maxf(_dash_cooldown_timer - delta, 0.0)
 	# _dash_timer is ticked inside _process_dash() so it only runs while dashing.
 
+	if _invincible_timer > 0.0:
+		_invincible_timer = maxf(_invincible_timer - delta, 0.0)
+
 # ---------------------------------------------------------------------------
 # WALL HELPER
 # Returns true only if the player is touching a non-player wall surface.
@@ -1373,6 +1392,9 @@ func _can_stand() -> bool:
 # Only called after movement so velocity is already updated for this frame.
 # ---------------------------------------------------------------------------
 func _update_state() -> void:
+	if state == State.EXITING:
+		return
+
 	# Never interrupt an active dash from outside _process_dash().
 	if state == State.DASH and _dash_timer > 0.0:
 		return
@@ -1533,6 +1555,16 @@ func _set_state(new_state: State) -> void:
 			_sprite.play("ClimbLeft")
 		State.HANG_EDGE:
 			_sprite.play("ClimbJumpPrepare")
+		State.EXITING:
+			# Don't change animation on exit — let whatever was playing continue.
+			# Exception: IDLE and LookUp are stationary; play Run in exit direction.
+			if _sprite.animation == &"Idle" or _sprite.animation == &"LookUp":
+				if _exit_direction == Vector2.LEFT:
+					_facing_direction = -1
+				elif _exit_direction == Vector2.RIGHT:
+					_facing_direction = 1
+				_sprite.play("Run")
+			# For UP/DOWN exits the jump/fall animation already plays naturally.
 	# TODO: emit a signal (state_changed) for BattleManager / UI to react to.
 
 # ---------------------------------------------------------------------------
@@ -1594,6 +1626,66 @@ func _on_animation_finished() -> void:
 		_set_state(State.IDLE)
 
 # ---------------------------------------------------------------------------
+# EXIT — called by Room.gd when the player enters an exit zone.
+# Magnetizes the player out of the screen in the given direction.
+# ---------------------------------------------------------------------------
+func start_exit(direction: Vector2) -> void:
+	if _is_exiting:
+		return
+	_is_exiting = true
+	_exit_direction = direction
+	# Set facing before _set_state so the animation case sees it.
+	if direction == Vector2.LEFT:
+		_facing_direction = -1
+	elif direction == Vector2.RIGHT:
+		_facing_direction = 1
+	_set_state(State.EXITING)
+
+func _process_exiting(delta: float) -> void:
+	match _exit_direction:
+		Vector2.LEFT:
+			velocity.x = -exit_horizontal_speed
+			velocity.y = 0.0
+		Vector2.RIGHT:
+			velocity.x = exit_horizontal_speed
+			velocity.y = 0.0
+		Vector2.UP:
+			velocity.x = 0.0
+			velocity.y = -exit_boost_speed
+		Vector2.DOWN:
+			# Fall naturally with a minimum downward speed.
+			velocity.y = maxf(velocity.y + _base_gravity * delta, exit_boost_speed)
+			velocity.x = 0.0
+
+func _check_exit_offscreen() -> void:
+	var room := RoomManager.current_room as Room
+	if room == null:
+		return
+	var bounds := room.get_bounds_rect()
+	var off_screen := false
+	match _exit_direction:
+		Vector2.LEFT:   off_screen = global_position.x < bounds.position.x - 40.0
+		Vector2.RIGHT:  off_screen = global_position.x > bounds.end.x + 40.0
+		Vector2.UP:     off_screen = global_position.y < bounds.position.y - 40.0
+		Vector2.DOWN:   off_screen = global_position.y > bounds.end.y + 40.0
+	if off_screen:
+		set_physics_process(false)
+		RoomManager.player_finished_exit(self)
+
+# Called by RoomManager after loading a new room and placing the player.
+# Resets all exit state and grants a brief invincibility window.
+func arrive_in_room(spawn_position: Vector2) -> void:
+	_is_exiting      = false
+	_exit_direction  = Vector2.ZERO
+	velocity         = Vector2.ZERO
+	_platform_velocity = Vector2.ZERO
+	global_position  = spawn_position
+	set_physics_process(true)
+	_set_state(State.IDLE)
+	_invincible_timer = 0.5   # 0.5 s grace period so player can't land on a spike instantly
+	# FUTURE — could show a brief flash or shield indicator during invincibility.
+
+# ---------------------------------------------------------------------------
 # RESPAWN — called by hazards (e.g. Spike.gd) on player contact.
 # Celeste-style reset: no HP lost, play Hit animation, brief pause, teleport.
 # ---------------------------------------------------------------------------
@@ -1601,6 +1693,9 @@ func trigger_respawn() -> void:
 	# FUTURE — to add HP damage on spike contact, call take_damage(1) here,
 	# before _sprite.play("Hit"). This connects to the existing HP system
 	# in Player.gd without any other changes needed.
+
+	if _invincible_timer > 0.0 or _is_exiting:
+		return
 
 	# Prevent double triggers if the player overlaps multiple spike HitZones
 	# at the same time.

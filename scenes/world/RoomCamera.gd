@@ -7,8 +7,9 @@
 ##   3. Clamps that position to the current room's bounds so the
 ##      camera never shows empty space outside the room.
 ##
-## When both players reach an exit, this camera fades to black,
-## asks RoomManager to swap the room, then fades back in.
+## When all players have exited (gone off screen), RoomManager emits
+## all_players_exited. This camera then fades to black, asks RoomManager
+## to swap the room, then fades back in.
 
 class_name RoomCamera
 extends Camera2D
@@ -16,6 +17,17 @@ extends Camera2D
 # ---------------------------------------------------------------------------
 # EXPORTS
 # ---------------------------------------------------------------------------
+
+## Controls how the screen transition looks between rooms.
+## Use INSTANT for fast testing; FADE_BLACK for the full cinematic effect.
+## SLIDE is reserved for a future camera-pan effect.
+enum TransitionStyle {
+	FADE_BLACK,  # fade out to black → load → fade back in
+	INSTANT,     # hard cut, no fade — best for testing
+	# FUTURE — SLIDE: camera pans to the adjacent room without a fade.
+	# Good for rooms that form a continuous space. Not yet implemented.
+}
+@export var transition_style: TransitionStyle = TransitionStyle.FADE_BLACK
 
 ## Seconds for the fade-to-black and fade-from-black each.
 ## 0.4 s feels snappy; raise it for a slower cinematic feel.
@@ -42,8 +54,8 @@ extends Camera2D
 # Guards against starting a second transition while one is still running.
 var _transitioning : bool = false
 
-# The Room we are currently connected to — stored so we can disconnect
-# its signal before connecting to the next room.
+# The Room we are currently connected to — stored so we can update our
+# local next/prev references when a new room loads.
 var _connected_room : Room = null   # safe — used only inside this script after casting
 
 # ---------------------------------------------------------------------------
@@ -57,6 +69,9 @@ func _ready() -> void:
 
 	# Listen for room changes from the autoload.
 	RoomManager.room_loaded.connect(_on_room_loaded)
+
+	# Listen for all-players-exited from RoomManager.
+	RoomManager.all_players_exited.connect(_on_all_players_exited)
 
 	# If RoomManager already has a room loaded (e.g. the starting room),
 	# connect to it now — otherwise we wait for the room_loaded signal.
@@ -120,12 +135,7 @@ func _on_room_loaded(room: Node) -> void:
 	if r == null:
 		return
 
-	# Disconnect from the old room so its signal doesn't fire after it's freed.
-	if _connected_room != null and _connected_room.exit_triggered.is_connected(_on_exit_triggered):
-		_connected_room.exit_triggered.disconnect(_on_exit_triggered)
-
 	_connected_room = r
-	r.exit_triggered.connect(_on_exit_triggered)
 
 	# Keep next_room / prev_room in sync with the newly loaded room's exports
 	# so the camera always knows where to go from here.
@@ -136,22 +146,15 @@ func _on_room_loaded(room: Node) -> void:
 
 # ---------------------------------------------------------------------------
 # EXIT RESPONSE
+# Called by RoomManager.all_players_exited once every player is off screen.
 # ---------------------------------------------------------------------------
 
-func _on_exit_triggered(direction: String) -> void:
+func _on_all_players_exited(direction: String, next_room: PackedScene) -> void:
 	if _transitioning:
-		return   # already mid-transition, ignore duplicate signals
-
-	var target : PackedScene
-	match direction:
-		"right":  target = next_room
-		"left":   target = prev_room
-		"top":    target = next_room_top
-		"bottom": target = next_room_bottom
-	if target == null:
-		return   # no room connected to this exit — dead end, do nothing
-
-	_transition_to(target, direction)
+		return
+	if next_room == null:
+		return
+	_transition_to(next_room, direction)
 
 # ---------------------------------------------------------------------------
 # FADE TRANSITION
@@ -160,28 +163,36 @@ func _on_exit_triggered(direction: String) -> void:
 func _transition_to(room_scene: PackedScene, direction: String) -> void:
 	_transitioning = true
 
-	# ---- Step 1: fade to black ----
-	var tween := create_tween()
-	tween.tween_property(_fade_rect, "color", Color(0, 0, 0, 1), transition_duration)
-	await tween.finished
+	match transition_style:
+		TransitionStyle.FADE_BLACK:
+			# ---- Step 1: fade to black ----
+			var tween := create_tween()
+			tween.tween_property(_fade_rect, "color", Color(0, 0, 0, 1), transition_duration)
+			await tween.finished
 
-	# ---- Step 2: swap the room ----
-	# RoomManager.load_room() will:
-	#   • free the old room
-	#   • instantiate the new one
-	#   • teleport players to the correct spawn marker
-	#   • emit room_loaded  →  our _on_room_loaded fires automatically,
-	#     which rewires exit signals and updates next_room / prev_room.
-	RoomManager.load_room(room_scene, direction)
+			# ---- Step 2: swap the room ----
+			# RoomManager.load_room() will:
+			#   • free the old room
+			#   • instantiate the new one
+			#   • call arrive_in_room() on each Player (sets position + re-enables physics)
+			#   • emit room_loaded  →  our _on_room_loaded fires automatically
+			RoomManager.load_room(room_scene, direction)
 
-	# ---- Step 3: snap camera to players' new position ----
-	# The players were teleported to a spawn marker, so we move the camera
-	# there instantly while the screen is still black — no pan across the map.
-	_track_players()
+			# ---- Step 3: snap camera to players' new position ----
+			_track_players()
 
-	# ---- Step 4: fade back in ----
-	tween = create_tween()
-	tween.tween_property(_fade_rect, "color", Color(0, 0, 0, 0), transition_duration)
-	await tween.finished
+			# ---- Step 4: fade back in ----
+			tween = create_tween()
+			tween.tween_property(_fade_rect, "color", Color(0, 0, 0, 0), transition_duration)
+			await tween.finished
+
+		TransitionStyle.INSTANT:
+			# Hard cut — no fade. Useful for testing without waiting.
+			RoomManager.load_room(room_scene, direction)
+			_track_players()
+
+		_:  # SLIDE and anything else — fall back to INSTANT for now.
+			RoomManager.load_room(room_scene, direction)
+			_track_players()
 
 	_transitioning = false

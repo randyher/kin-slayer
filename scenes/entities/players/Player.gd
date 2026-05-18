@@ -165,6 +165,9 @@ enum HoldGrabMode {
 @export_range(0.0, 2.0, 0.1, "suffix:s") var respawn_delay: float = 0.6
 ## If true, the player flickers briefly after teleporting to signal the respawn.
 @export var flash_on_respawn: bool = true
+## Pixels to pop upward the moment a spike is hit, before the Hit animation plays.
+## Set to 0 to disable the bounce.
+@export_range(0.0, 80.0, 1.0, "suffix:px") var respawn_bounce: float = 15.0
 
 @export_group("Dash")
 ## Horizontal speed (px/s) during a dash — overrides normal movement entirely.
@@ -1605,6 +1608,14 @@ func trigger_respawn() -> void:
 	# Disable HoldDetector to prevent accidentally grabbing a background hold
 	# mid-respawn.
 	_hold_detector.monitoring = false
+
+	# Arc the player up then back down. Physics is frozen so we tween position
+	# directly — runs concurrently with the Hit animation (~0.25 s total).
+	if respawn_bounce > 0.0:
+		var start_y := global_position.y
+		var tween := create_tween()
+		tween.tween_property(self, "global_position:y", start_y - respawn_bounce, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(self, "global_position:y", start_y, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 	# Play the Hit animation once. It is non-looping so it stops on the last
 	# frame automatically.

@@ -1442,13 +1442,10 @@ func _update_state() -> void:
 				and _wall_climb_cooldown <= 0.0:
 			_set_state(State.WALL_CLIMB)
 
-		# 3. WALL SLIDE — pressing toward a climbable wall (no grip needed).
-		#    Velocity direction is intentionally not checked — a wall jump or
-		#    double jump that contacts a new wall while still rising should
-		#    stick immediately rather than continuing the jump animation.
+		# 3. WALL SLIDE — falling + pressing toward a climbable wall (no grip needed).
 		else:
 			var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
-			if _is_on_climbable_wall() and pressing_into_wall:
+			if _is_on_climbable_wall() and velocity.y > 0.0 and pressing_into_wall:
 				_set_state(State.WALL_SLIDE)
 			elif velocity.y < 0.0:
 				_set_state(State.JUMP)

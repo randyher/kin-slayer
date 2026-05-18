@@ -84,8 +84,6 @@
 [ext_resource type="Texture2D" uid="uid://dpkw14a8x0q4i" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip12.png" id="ff12"]
 [ext_resource type="Texture2D" uid="uid://bq8rrmw2x2gge" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip13.png" id="ff13"]
 [ext_resource type="Texture2D" uid="uid://bhmtqn8kflbyv" path="res://assets/sprites/players/p1/FrontFlip/FrontFlip14.png" id="ff14"]
-# Hit animation — plays on hazard contact before respawn
-# Both P1 and P2 use this via shared Player.tscn
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit01.png" id="h1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit02.png" id="h2"]
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Hit/Hit03.png" id="h3"]

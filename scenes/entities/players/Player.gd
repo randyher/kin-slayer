@@ -326,9 +326,6 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 # respawn calls on the same frame.
 var _is_respawning: bool = false
 
-# Cached world position of the spawn Marker2D resolved in _ready().
-# Teleport destination for trigger_respawn().
-var _spawn_point: Vector2 = Vector2.ZERO
 
 # ---------------------------------------------------------------------------
 # READY
@@ -357,15 +354,8 @@ func _ready() -> void:
 	# enters or leaves the player's detection area.
 	_hold_detector.area_entered.connect(_on_hold_area_entered)
 	_hold_detector.area_exited.connect(_on_hold_area_exited)
-	# Locate the spawn Marker2D by name in the current scene tree.
-	# P1 uses SpawnLeft, P2 uses SpawnRight.
-	# Set spawn_marker_name in the Inspector per player instance in each room scene.
-	var spawn_node := get_tree().root.find_child(spawn_marker_name, true, false)
-	if spawn_node:
-		_spawn_point = spawn_node.global_position
-	else:
-		_spawn_point = global_position
-		push_warning("Player: spawn marker '%s' not found — using start position as fallback." % spawn_marker_name)
+	# _spawn_point is resolved lazily in trigger_respawn() so the room is
+	# guaranteed to be loaded when we look up the marker.
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -1626,8 +1616,12 @@ func trigger_respawn() -> void:
 	# Short pause so the hit registers visually before the teleport.
 	await get_tree().create_timer(respawn_delay).timeout
 
-	# Teleport to the spawn point resolved in _ready().
-	global_position = _spawn_point
+	# Resolve spawn marker now (room is guaranteed loaded at respawn time).
+	var spawn_node := get_tree().root.find_child(spawn_marker_name, true, false)
+	if spawn_node:
+		global_position = spawn_node.global_position
+	else:
+		push_warning("Player: spawn marker '%s' not found — staying at current position." % spawn_marker_name)
 
 	# Re-enable physics and input.
 	set_physics_process(true)

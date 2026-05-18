@@ -1,36 +1,24 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bouy38rqe0p2e"]
 
-; Spike — StaticBody2D with a child Area2D (HitZone) for player detection.
-;
-; To use in the editor:
-;   1. Instance this scene into any room scene.
-;   2. Add a Sprite2D child and assign your spike texture in the Inspector.
-;   3. Resize CollisionShape2D to match your spike visual.
-;   4. Resize HitZone/CollisionShape2D slightly smaller than the static body
-;      so the player must truly land on the spike to trigger respawn.
-
-[ext_resource type="Script" path="res://scripts/components/Spike.gd" id="1_spike"]
+[ext_resource type="Script" uid="uid://c1544hnudwqgg" path="res://scripts/components/Spike.gd" id="1_spike"]
 
 [sub_resource type="RectangleShape2D" id="SpikeBodyShape"]
 size = Vector2(16, 8)
 
 [sub_resource type="RectangleShape2D" id="SpikeHitShape"]
-size = Vector2(12, 6)
+size = Vector2(14, 6)
 
-[node name="Spike" type="StaticBody2D"]
+[node name="Spike" type="StaticBody2D" unique_id=686557002]
 script = ExtResource("1_spike")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-; Assign your spike texture here in the Inspector — no default texture is set
-; so each spike instance can use a different sprite as needed.
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1791895069]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1557817395]
 shape = SubResource("SpikeBodyShape")
+disabled = true
 
-[node name="HitZone" type="Area2D" parent="."]
-; Collision mask = 1 detects the player's CharacterBody2D (collision layer 1).
+[node name="HitZone" type="Area2D" parent="." unique_id=54880815]
 collision_layer = 0
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="HitZone"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitZone" unique_id=908019554]
 shape = SubResource("SpikeHitShape")

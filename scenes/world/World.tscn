@@ -1,43 +1,24 @@
-[gd_scene format=3]
-
-; Root scene for the game.
-; Contains the persistent camera and both players.
-; Rooms are loaded / swapped at runtime by RoomManager — they are NOT
-; children of this scene in the file; they get added as children of the
-; "World" node when the game runs.
+[gd_scene format=3 uid="uid://dre8xtcmix8ob"]
 
 [ext_resource type="PackedScene" uid="uid://dp572jo7tdjvb" path="res://scenes/entities/players/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
-[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="3_hud"]
+[ext_resource type="PackedScene" uid="uid://cyehcitmifcte" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="4_pause"]
 
-[node name="World" type="Node2D"]
+[node name="World" type="Node2D" unique_id=2034841482]
 
-; Background removed — each room provides its own parallax background.
-; The Atmosphere CanvasLayer in each room scene handles the tint overlay.
+[node name="RoomCamera" parent="." unique_id=1284126861 instance=ExtResource("2_camera")]
 
-; RoomCamera tracks both players and handles room-transition fades.
-; next_room / prev_room are set automatically on each room load —
-; you do not need to configure them here.
-[node name="RoomCamera" parent="." instance=ExtResource("2_camera")]
-
-; Player 1 — Arrow Keys + Enter + Right Shift (see project input map)
-[node name="Player1" parent="." instance=ExtResource("1_player")]
+[node name="Player1" parent="." unique_id=331199887 instance=ExtResource("1_player")]
 position = Vector2(200, 300)
-player_id = 1
+player_color = Color(0.24313726, 0.57254905, 1, 1)
 
-; Player 2 — WASD + Space + Left Shift
-; Blue-grey tint so the two players are visually distinct.
-[node name="Player2" parent="." instance=ExtResource("1_player")]
+[node name="Player2" parent="." unique_id=1461399976 instance=ExtResource("1_player")]
 position = Vector2(300, 300)
 player_id = 2
-player_color = Color(0.3, 0.3, 0.45, 1)
+player_color = Color(0.22920999, 0.764438, 0.34828106, 1)
+spawn_marker_name = "SpawnRight"
 
-; HUD — discovers players automatically via the "players" group.
-; Player nodes add themselves to that group in their own _ready(),
-; so no manual signal wiring is needed here.
-[node name="HUD" parent="." instance=ExtResource("3_hud")]
+[node name="HUD" parent="." unique_id=2056495564 instance=ExtResource("3_hud")]
 
-; PauseMenu — Escape to open/close, jump button to confirm selection.
-; process_mode=ALWAYS on the CanvasLayer keeps it responsive while paused.
-[node name="PauseMenu" parent="." instance=ExtResource("4_pause")]
+[node name="PauseMenu" parent="." unique_id=337874137 instance=ExtResource("4_pause")]

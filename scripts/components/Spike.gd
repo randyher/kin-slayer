@@ -23,6 +23,8 @@ func _ready() -> void:
 	$HitZone.body_entered.connect(_on_hit_zone_body_entered)
 
 func _on_hit_zone_body_entered(body: Node2D) -> void:
-	# Only react to nodes in the "players" group — ignores enemies, projectiles, etc.
-	if body.is_in_group("players"):
-		body.trigger_respawn()
+	# Player is the only CharacterBody2D on collision layer 1 that can be a player.
+	# Using `is Player` avoids calling trigger_respawn() on an untyped Node2D,
+	# which is a hard compile error in Godot 4.3+.
+	if body is Player:
+		(body as Player).trigger_respawn()

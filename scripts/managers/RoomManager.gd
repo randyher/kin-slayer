@@ -181,8 +181,11 @@ func _spawn_players(spawn_side: String) -> void:
 	if room == null:
 		return
 
-	if spawn_side == "none" and players.size() >= 2:
-		# Spread players across the room on first load rather than stacking them.
+	# In 2-player co-op, always spread P1 to SpawnLeft and P2 to SpawnRight
+	# regardless of which direction they entered from. Room designers set
+	# SpawnLeft and SpawnRight over the safe landing platforms for this room.
+	# Directional markers (SpawnTop, SpawnBottom) are reserved for 1-player.
+	if players.size() >= 2:
 		var p1 := players[0] as Node2D
 		var p2 := players[1] as Node2D
 		if room.spawn_left != null:
@@ -197,22 +200,20 @@ func _spawn_players(spawn_side: String) -> void:
 				p2.global_position = room.spawn_right.global_position
 		return
 
+	# 1-player: use the directional marker matching the entry side.
 	var marker : Marker2D
 	match spawn_side:
 		"left":   marker = room.spawn_right
 		"top":    marker = room.spawn_bottom
 		"bottom": marker = room.spawn_top
-		_:        marker = room.spawn_left   # "right", "none" with 1 player, or anything else
+		_:        marker = room.spawn_left   # "right", "none", or anything else
 
 	if marker == null:
 		push_warning("RoomManager: spawn marker not found in room — players not repositioned.")
 		return
 
-	# For transitions, place all players at the entry marker with a small gap.
-	for i : int in players.size():
-		var player := players[i] as Node2D
-		var spawn_pos := marker.global_position + Vector2(i * 48.0, 0.0)
-		if player is Player:
-			(player as Player).arrive_in_room(spawn_pos)
-		else:
-			player.global_position = spawn_pos
+	var player := players[0] as Node2D
+	if player is Player:
+		(player as Player).arrive_in_room(marker.global_position)
+	else:
+		player.global_position = marker.global_position

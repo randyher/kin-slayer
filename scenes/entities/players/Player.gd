@@ -674,7 +674,10 @@ func _process_duck(input: Vector2, _delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, friction * _delta)
 	velocity.y += _base_gravity * _delta
 
-	if _jump_pressed or _jump_buffer_timer > 0.0:
+	# Only allow jumping if there is ceiling clearance to stand up.
+	# Mirrors the _update_state() stand-up guard: if the player can't stand,
+	# they can't jump either — you can't launch into a ceiling you're pinned under.
+	if (_jump_pressed or _jump_buffer_timer > 0.0) and _can_stand():
 		_start_jump()
 
 # ---------------------------------------------------------------------------

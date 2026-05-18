@@ -3,10 +3,10 @@
 [ext_resource type="Script" uid="uid://c1544hnudwqgg" path="res://scripts/components/Spike.gd" id="1_spike"]
 
 [sub_resource type="RectangleShape2D" id="SpikeBodyShape"]
-size = Vector2(16, 8)
+size = Vector2(55, 15)
 
 [sub_resource type="RectangleShape2D" id="SpikeHitShape"]
-size = Vector2(14, 6)
+size = Vector2(479, 19)
 
 [node name="Spike" type="StaticBody2D" unique_id=686557002]
 script = ExtResource("1_spike")

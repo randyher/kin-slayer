@@ -1393,7 +1393,7 @@ tile_map_data = PackedByteArray("AADu////AAADAAMAAADu/wAAAAADAAQAAADu/wEAAAADAAM
 tile_set = SubResource("TileSet_bg_paint")
 
 [node name="Spike" parent="." index="16" unique_id=686557002 instance=ExtResource("spike_scene")]
-position = Vector2(-240, 287)
+position = Vector2(-5, 302)
 
 [node name="AnimatableBody2D" type="AnimatableBody2D" parent="." index="17" unique_id=1739717473]
 script = ExtResource("12_aimob")

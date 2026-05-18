@@ -359,6 +359,14 @@ func _ready() -> void:
 	_hold_detector.area_exited.connect(_on_hold_area_exited)
 	# _spawn_point is resolved lazily in trigger_respawn() so the room is
 	# guaranteed to be loaded when we look up the marker.
+	# Wait one frame so all players have added themselves to the "players" group,
+	# then exclude them from ledge raycasts so players can't grab each other.
+	await get_tree().process_frame
+	for node in get_tree().get_nodes_in_group("players"):
+		if node == self:
+			continue
+		_ledge_check_upper.add_exception(node as CollisionObject2D)
+		_ledge_check_lower.add_exception(node as CollisionObject2D)
 
 # ---------------------------------------------------------------------------
 # PHYSICS PROCESS  (runs every physics tick, typically 60 Hz)
@@ -1434,10 +1442,13 @@ func _update_state() -> void:
 				and _wall_climb_cooldown <= 0.0:
 			_set_state(State.WALL_CLIMB)
 
-		# 3. WALL SLIDE — falling + pressing toward a climbable wall (no grip needed).
+		# 3. WALL SLIDE — pressing toward a climbable wall (no grip needed).
+		#    Velocity direction is intentionally not checked — a wall jump or
+		#    double jump that contacts a new wall while still rising should
+		#    stick immediately rather than continuing the jump animation.
 		else:
 			var pressing_into_wall := _input_x * float(_facing_direction) > 0.0
-			if _is_on_climbable_wall() and velocity.y > 0.0 and pressing_into_wall:
+			if _is_on_climbable_wall() and pressing_into_wall:
 				_set_state(State.WALL_SLIDE)
 			elif velocity.y < 0.0:
 				_set_state(State.JUMP)
@@ -1474,7 +1485,7 @@ func _set_state(new_state: State) -> void:
 					 or _sprite.animation == &"LedgeClimb"
 					 or _sprite.animation == &"ClimbGrab")
 	if one_shot and _sprite.is_playing():
-		if new_state in [State.JUMP, State.FALL, State.WALL_SLIDE, State.WALL_CLIMB]:
+		if new_state in [State.JUMP, State.FALL, State.WALL_CLIMB]:
 			state = new_state
 			return
 	state = new_state
@@ -1499,7 +1510,9 @@ func _set_state(new_state: State) -> void:
 		State.JUMP:        _sprite.play("JumpRise")
 		State.FALL:        _sprite.play("JumpFall")
 		State.DASH:        _sprite.play("DashLoop")
-		State.WALL_SLIDE:  _sprite.play("WallSlide")
+		State.WALL_SLIDE:
+			velocity.y = maxf(velocity.y, 0.0)  # cancel upward momentum on grab
+			_sprite.play("WallSlide")
 		State.WALL_CLIMB:  _sprite.play("WallClimb")   # _process_wall_climb updates this each frame
 		State.LEDGE_HANG:
 			# Snap to the Y recorded when the raycasts first saw the ledge, then

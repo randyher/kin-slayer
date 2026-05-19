@@ -1677,6 +1677,10 @@ func start_exit(direction: Vector2) -> void:
 		_facing_direction = -1
 	elif direction == Vector2.RIGHT:
 		_facing_direction = 1
+	# Disable collision so wall tiles don't block the player from sliding
+	# fully off screen. Re-enabled in arrive_in_room() after the transition.
+	_collision_stand.set_deferred("disabled", true)
+	_collision_duck.set_deferred("disabled", true)
 	_set_state(State.EXITING)
 
 func _process_exiting(delta: float) -> void:
@@ -1718,6 +1722,9 @@ func arrive_in_room(spawn_position: Vector2) -> void:
 	velocity         = Vector2.ZERO
 	_platform_velocity = Vector2.ZERO
 	global_position  = spawn_position
+	# Re-enable collision shapes that were disabled in start_exit().
+	_collision_stand.disabled = false
+	_collision_duck.disabled  = true   # duck shape stays off by default (standing state)
 	set_physics_process(true)
 	_set_state(State.IDLE)
 	_invincible_timer = 0.5   # 0.5 s grace period so player can't land on a spike instantly

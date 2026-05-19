@@ -15,7 +15,7 @@ extends Node2D
 ## Offset above the active player's head where the lowest button sits.
 @export var base_offset: Vector2 = Vector2(0.0, -60.0)
 ## Scale applied to all button sprites (pixel art needs 3× to be readable).
-@export var button_scale: Vector2 = Vector2(3.0, 3.0)
+@export var button_scale: Vector2 = Vector2(2.0, 2.0)
 ## Horizontal offset of each action label from its button sprite.
 @export var label_offset: Vector2 = Vector2(20.0, 0.0)
 ## How long the menu fades in (seconds).

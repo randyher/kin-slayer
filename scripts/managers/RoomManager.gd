@@ -14,9 +14,10 @@ extends Node
 # STARTING ROOM
 # ---------------------------------------------------------------------------
 
-## Hardcoded so no Inspector assignment is needed.
-## Change this path to swap the first room the game boots into.
-var starting_room : PackedScene = preload("res://scenes/world/Level01_Room01.tscn")
+## The room the game boots into. Change this in the Inspector on the
+## RoomManager autoload node (Project → Project Settings → Autoload → RoomManager)
+## to start testing in a different room without touching code.
+@export var starting_room : PackedScene = preload("res://scenes/world/Level01_Room02.tscn")
 
 # ---------------------------------------------------------------------------
 # SIGNALS
@@ -85,10 +86,10 @@ func _ready() -> void:
 ##
 ## spawn_side  —  which exit the players came from:
 ##   "right"  players walked off the right edge → enter new room from left
-##            → spawn at SpawnLeft marker
+##            → spawn at PlayerOneSpawn marker
 ##   "left"   players walked off the left edge  → enter new room from right
-##            → spawn at SpawnRight marker
-##   "none"   first load or manual override — use SpawnLeft by default
+##            → spawn at PlayerTwoSpawn marker
+##   "none"   first load or manual override — use PlayerOneSpawn by default
 func load_room(room_scene: PackedScene, spawn_side: String) -> void:
 	# Reset exit tracking for this new room.
 	_players_exited.clear()
@@ -172,41 +173,41 @@ func _spawn_players(spawn_side: String) -> void:
 
 	# spawn_side = direction the players exited from the PREVIOUS room.
 	# They enter the new room from the opposite side, so:
-	#   "right"  → came from the right → appear at SpawnLeft
-	#   "left"   → came from the left  → appear at SpawnRight
-	#   "top"    → came from above     → appear at SpawnBottom
-	#   "bottom" → came from below     → appear at SpawnTop
-	#   "none"   → first load          → Player 1 at SpawnLeft, Player 2 at SpawnRight
+	#   "right"  → came from the right → appear at PlayerOneSpawn
+	#   "left"   → came from the left  → appear at PlayerTwoSpawn
+	#   "top"    → came from above     → appear at PlayerFourSpawn
+	#   "bottom" → came from below     → appear at PlayerThreeSpawn
+	#   "none"   → first load          → Player 1 at PlayerOneSpawn, Player 2 at PlayerTwoSpawn
 	var room := current_room as Room
 	if room == null:
 		return
 
-	# In 2-player co-op, always spread P1 to SpawnLeft and P2 to SpawnRight
+	# In 2-player co-op, always spread P1 to PlayerOneSpawn and P2 to PlayerTwoSpawn
 	# regardless of which direction they entered from. Room designers set
-	# SpawnLeft and SpawnRight over the safe landing platforms for this room.
-	# Directional markers (SpawnTop, SpawnBottom) are reserved for 1-player.
+	# PlayerOneSpawn and PlayerTwoSpawn over the safe landing platforms for this room.
+	# Directional markers (PlayerThreeSpawn, PlayerFourSpawn) are reserved for 1-player.
 	if players.size() >= 2:
 		var p1 := players[0] as Node2D
 		var p2 := players[1] as Node2D
-		if room.spawn_left != null:
+		if room.spawn_p1 != null:
 			if p1 is Player:
-				(p1 as Player).arrive_in_room(room.spawn_left.global_position)
+				(p1 as Player).arrive_in_room(room.spawn_p1.global_position)
 			else:
-				p1.global_position = room.spawn_left.global_position
-		if room.spawn_right != null:
+				p1.global_position = room.spawn_p1.global_position
+		if room.spawn_p2 != null:
 			if p2 is Player:
-				(p2 as Player).arrive_in_room(room.spawn_right.global_position)
+				(p2 as Player).arrive_in_room(room.spawn_p2.global_position)
 			else:
-				p2.global_position = room.spawn_right.global_position
+				p2.global_position = room.spawn_p2.global_position
 		return
 
 	# 1-player: use the directional marker matching the entry side.
 	var marker : Marker2D
 	match spawn_side:
-		"left":   marker = room.spawn_right
-		"top":    marker = room.spawn_bottom
-		"bottom": marker = room.spawn_top
-		_:        marker = room.spawn_left   # "right", "none", or anything else
+		"left":   marker = room.spawn_p2
+		"top":    marker = room.spawn_p4
+		"bottom": marker = room.spawn_p3
+		_:        marker = room.spawn_p1   # "right", "none", or anything else
 
 	if marker == null:
 		push_warning("RoomManager: spawn marker not found in room — players not repositioned.")

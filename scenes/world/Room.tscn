@@ -92,21 +92,18 @@ collision_mask = 1
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitBottom"]
 shape = SubResource("Shape_exit_bottom")
 
-; SpawnLeft — where players appear when they enter this room from the LEFT.
-; (i.e. they came through ExitRight of the room to the left.)
-[node name="SpawnLeft" type="Marker2D" parent="."]
+; PlayerOneSpawn — where Player 1 appears on room entry.
+[node name="PlayerOneSpawn" type="Marker2D" parent="."]
 position = Vector2(32, 140)
 
-; SpawnRight — where players appear when they enter this room from the RIGHT.
-[node name="SpawnRight" type="Marker2D" parent="."]
+; PlayerTwoSpawn — where Player 2 appears on room entry.
+[node name="PlayerTwoSpawn" type="Marker2D" parent="."]
 position = Vector2(288, 140)
 
-; SpawnTop — where players appear when they enter this room from ABOVE.
-; (i.e. they came through ExitBottom of the room above.)
-[node name="SpawnTop" type="Marker2D" parent="."]
+; PlayerThreeSpawn — reserved for a future 3rd player.
+[node name="PlayerThreeSpawn" type="Marker2D" parent="."]
 position = Vector2(160, 32)
 
-; SpawnBottom — where players appear when they enter this room from BELOW.
-; (i.e. they came through ExitTop of the room below.)
-[node name="SpawnBottom" type="Marker2D" parent="."]
+; PlayerFourSpawn — reserved for a future 4th player.
+[node name="PlayerFourSpawn" type="Marker2D" parent="."]
 position = Vector2(160, 148)

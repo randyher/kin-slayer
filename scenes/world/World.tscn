@@ -17,7 +17,7 @@ player_color = Color(0.24313726, 0.57254905, 1, 1)
 position = Vector2(300, 300)
 player_id = 2
 player_color = Color(0.22920999, 0.764438, 0.34828106, 1)
-spawn_marker_name = "SpawnRight"
+spawn_marker_name = "PlayerTwoSpawn"
 
 [node name="HUD" parent="." unique_id=2056495564 instance=ExtResource("3_hud")]
 

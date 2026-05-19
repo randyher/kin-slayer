@@ -164,9 +164,9 @@ enum HoldGrabMode {
 
 @export_group("Respawn")
 ## Name of the Marker2D node in the room scene that marks this player's spawn point.
-## P1 uses "SpawnLeft", P2 uses "SpawnRight".
+## P1 uses "PlayerOneSpawn", P2 uses "PlayerTwoSpawn".
 ## Set this in the Inspector per player instance in each room scene.
-@export var spawn_marker_name: String = "SpawnLeft"
+@export var spawn_marker_name: String = "PlayerOneSpawn"
 ## Seconds between the Hit animation finishing and teleporting to the spawn point.
 @export_range(0.0, 2.0, 0.1, "suffix:s") var respawn_delay: float = 0.6
 ## If true, the player flickers briefly after teleporting to signal the respawn.

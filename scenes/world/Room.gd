@@ -31,10 +31,10 @@ extends Node2D
 @onready var exit_left    : Area2D   = $ExitLeft
 @onready var exit_top     : Area2D   = $ExitTop
 @onready var exit_bottom  : Area2D   = $ExitBottom
-@onready var spawn_left   : Marker2D = $SpawnLeft
-@onready var spawn_right  : Marker2D = $SpawnRight
-@onready var spawn_top    : Marker2D = $SpawnTop
-@onready var spawn_bottom : Marker2D = $SpawnBottom
+@onready var spawn_p1 : Marker2D = $PlayerOneSpawn
+@onready var spawn_p2 : Marker2D = $PlayerTwoSpawn
+@onready var spawn_p3 : Marker2D = $PlayerThreeSpawn
+@onready var spawn_p4 : Marker2D = $PlayerFourSpawn
 
 # ---------------------------------------------------------------------------
 # READY

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Kin Slayer"
-run/main_scene="res://scenes/world/World.tscn"
+run/main_scene="uid://dre8xtcmix8ob"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 

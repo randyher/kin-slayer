@@ -979,7 +979,7 @@ sources/1 = SubResource("TileSetAtlasSource_aimob")
 pattern_0 = SubResource("TileMapPattern_waa48")
 pattern_1 = SubResource("TileMapPattern_kpllk")
 
-[sub_resource type="TileSetAtlasSource" id="AtlasSource_bg_paint"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bgci4"]
 texture = ExtResource("mc_bg")
 1:0/0 = 0
 1:1/0 = 0
@@ -1225,7 +1225,7 @@ texture = ExtResource("mc_bg")
 17:13/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_bg_paint"]
-sources/0 = SubResource("AtlasSource_bg_paint")
+sources/0 = SubResource("TileSetAtlasSource_bgci4")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bgci4"]
 size = Vector2(64.25, 80.5)
@@ -1233,7 +1233,7 @@ size = Vector2(64.25, 80.5)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_aimob"]
 size = Vector2(500, 23)
 
-[node name="Room" unique_id=43142681 instance=ExtResource("1_room_base")]
+[node name="Level01_Room01" unique_id=43142681 instance=ExtResource("1_room_base")]
 script = ExtResource("4_script")
 next_room_top = ExtResource("room02_scene")
 

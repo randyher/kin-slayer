@@ -6,7 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://c15plkcxkhseb" path="res://assets/tilesets/magic-castle-sprites.png" id="4_bw4k4"]
 [ext_resource type="Script" uid="uid://b5p5fg0qrutn5" path="res://scripts/components/MovingPlatformSimple.gd" id="5_bw4k4"]
 [ext_resource type="Texture2D" uid="uid://bp37yajpcd47h" path="res://assets/sprites/environments/magic-castle/magic-castle-background.png" id="6_kpllk"]
-[ext_resource type="PackedScene" path="res://scenes/world/Level01_Room03.tscn" id="7_room03"]
+[ext_resource type="PackedScene" uid="uid://o2x0715r6voe" path="res://scenes/world/Level01_Room03.tscn" id="7_room03"]
 
 [sub_resource type="RectangleShape2D" id="Shape_bounds"]
 size = Vector2(1152, 648)
@@ -23,7 +23,7 @@ tile_data = PackedInt32Array(0, 131072, 7, 65536, 131072, 8, 131072, 1441792, 16
 [sub_resource type="TileMapPattern" id="TileMapPattern_kpllk"]
 tile_data = PackedInt32Array(0, 1572864, 6, 65536, 1572864, 7, 131072, 131072, 1073741831, 196608, 196608, 1073741831, 262144, 131072, 536870919, 1, 1572864, 6, 65537, 1572864, 7, 131073, 1048576, 11, 196609, 1048576, 11, 262145, 196608, 536870919, 2, 1572864, 6, 65538, 1572864, 7, 131074, 1048576, 11, 196610, 1048576, 11, 262146, 131072, 536870919, 3, 1572864, 6, 65539, 1572864, 7, 131075, 196608, 1879048199, 196611, 131072, 1879048199, 262147, 196608, 536870919)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_kpllk"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_waa48"]
 texture = ExtResource("3_4gukh")
 16:9/0 = 0
 16:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
@@ -183,7 +183,7 @@ texture = ExtResource("3_4gukh")
 26:7/0 = 0
 26:7/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_waa48"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6lbwq"]
 texture = ExtResource("4_bw4k4")
 3:1/0 = 0
 3:2/0 = 0
@@ -288,8 +288,8 @@ texture = ExtResource("4_bw4k4")
 
 [sub_resource type="TileSet" id="TileSet_a3ow2"]
 physics_layer_0/collision_layer = 1
-sources/0 = SubResource("TileSetAtlasSource_kpllk")
-sources/1 = SubResource("TileSetAtlasSource_waa48")
+sources/0 = SubResource("TileSetAtlasSource_waa48")
+sources/1 = SubResource("TileSetAtlasSource_6lbwq")
 pattern_0 = SubResource("TileMapPattern_aimob")
 pattern_1 = SubResource("TileMapPattern_kpllk")
 
@@ -817,8 +817,8 @@ texture = ExtResource("6_kpllk")
 [sub_resource type="TileSet" id="TileSet_6lbwq"]
 sources/0 = SubResource("TileSetAtlasSource_a3ow2")
 
-[node name="Room2" unique_id=427460348 instance=ExtResource("1_room_base")]
-next_room = ExtResource("7_room03")
+[node name="Level01_Room02" unique_id=427460348 instance=ExtResource("1_room_base")]
+prev_room = ExtResource("7_room03")
 
 [node name="RoomBounds" parent="." index="1"]
 position = Vector2(0, 0)
@@ -852,10 +852,10 @@ position = Vector2(0, 324)
 shape = SubResource("Shape_exit_h")
 
 [node name="PlayerOneSpawn" parent="." index="6"]
-position = Vector2(323, -59)
+position = Vector2(-515, -163)
 
 [node name="PlayerTwoSpawn" parent="." index="7"]
-position = Vector2(-389, 202)
+position = Vector2(-542, -267)
 
 [node name="Platforms" type="TileMapLayer" parent="." index="10" unique_id=1132421879]
 position = Vector2(59, 18)

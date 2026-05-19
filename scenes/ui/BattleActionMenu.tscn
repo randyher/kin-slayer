@@ -1,0 +1,197 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/BattleActionMenu.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ui/buttons/playstation-buttons.png" id="2_sheet"]
+
+[sub_resource type="AtlasTexture" id="FlatCross"]
+atlas = ExtResource("2_sheet")
+region = Rect2(14, 196, 16, 16)
+
+[sub_resource type="AtlasTexture" id="FlatSquare"]
+atlas = ExtResource("2_sheet")
+region = Rect2(14, 214, 16, 16)
+
+[sub_resource type="AtlasTexture" id="FlatCircle"]
+atlas = ExtResource("2_sheet")
+region = Rect2(14, 178, 16, 16)
+
+[sub_resource type="AtlasTexture" id="FlatTriangle"]
+atlas = ExtResource("2_sheet")
+region = Rect2(14, 160, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCross1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(92, 196, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCross2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(110, 196, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCross3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(128, 196, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCross4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(146, 196, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimSquare1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(92, 214, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimSquare2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(110, 214, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimSquare3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(128, 214, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimSquare4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(146, 214, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCircle1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(92, 178, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCircle2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(110, 178, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCircle3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(128, 178, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimCircle4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(146, 178, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimTriangle1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(92, 160, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimTriangle2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(110, 160, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimTriangle3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(128, 160, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AnimTriangle4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(146, 160, 16, 16)
+
+[sub_resource type="SpriteFrames" id="FramesCross"]
+animations = [{
+"frames": [{ "duration": 1.0, "texture": SubResource("FlatCross") }],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [
+{ "duration": 1.0, "texture": SubResource("AnimCross1") },
+{ "duration": 1.0, "texture": SubResource("AnimCross2") },
+{ "duration": 1.0, "texture": SubResource("AnimCross3") },
+{ "duration": 1.0, "texture": SubResource("AnimCross4") }
+],
+"loop": false,
+"name": &"pressed",
+"speed": 12.0
+}]
+
+[sub_resource type="SpriteFrames" id="FramesSquare"]
+animations = [{
+"frames": [{ "duration": 1.0, "texture": SubResource("FlatSquare") }],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [
+{ "duration": 1.0, "texture": SubResource("AnimSquare1") },
+{ "duration": 1.0, "texture": SubResource("AnimSquare2") },
+{ "duration": 1.0, "texture": SubResource("AnimSquare3") },
+{ "duration": 1.0, "texture": SubResource("AnimSquare4") }
+],
+"loop": false,
+"name": &"pressed",
+"speed": 12.0
+}]
+
+[sub_resource type="SpriteFrames" id="FramesCircle"]
+animations = [{
+"frames": [{ "duration": 1.0, "texture": SubResource("FlatCircle") }],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [
+{ "duration": 1.0, "texture": SubResource("AnimCircle1") },
+{ "duration": 1.0, "texture": SubResource("AnimCircle2") },
+{ "duration": 1.0, "texture": SubResource("AnimCircle3") },
+{ "duration": 1.0, "texture": SubResource("AnimCircle4") }
+],
+"loop": false,
+"name": &"pressed",
+"speed": 12.0
+}]
+
+[sub_resource type="SpriteFrames" id="FramesTriangle"]
+animations = [{
+"frames": [{ "duration": 1.0, "texture": SubResource("FlatTriangle") }],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [
+{ "duration": 1.0, "texture": SubResource("AnimTriangle1") },
+{ "duration": 1.0, "texture": SubResource("AnimTriangle2") },
+{ "duration": 1.0, "texture": SubResource("AnimTriangle3") },
+{ "duration": 1.0, "texture": SubResource("AnimTriangle4") }
+],
+"loop": false,
+"name": &"pressed",
+"speed": 12.0
+}]
+
+[node name="BattleActionMenu" type="Node2D"]
+script = ExtResource("1_menu")
+visible = false
+
+[node name="ButtonEntry_Cross" type="Node2D" parent="."]
+
+[node name="ButtonSprite" type="AnimatedSprite2D" parent="ButtonEntry_Cross"]
+sprite_frames = SubResource("FramesCross")
+animation = &"idle"
+
+[node name="ActionLabel" type="Label" parent="ButtonEntry_Cross"]
+text = "Attack"
+label_settings = null
+
+[node name="ButtonEntry_Square" type="Node2D" parent="."]
+
+[node name="ButtonSprite" type="AnimatedSprite2D" parent="ButtonEntry_Square"]
+sprite_frames = SubResource("FramesSquare")
+animation = &"idle"
+
+[node name="ActionLabel" type="Label" parent="ButtonEntry_Square"]
+text = "Guard"
+
+[node name="ButtonEntry_Circle" type="Node2D" parent="."]
+
+[node name="ButtonSprite" type="AnimatedSprite2D" parent="ButtonEntry_Circle"]
+sprite_frames = SubResource("FramesCircle")
+animation = &"idle"
+
+[node name="ActionLabel" type="Label" parent="ButtonEntry_Circle"]
+text = "Swap"
+
+[node name="ButtonEntry_Triangle" type="Node2D" parent="."]
+
+[node name="ButtonSprite" type="AnimatedSprite2D" parent="ButtonEntry_Triangle"]
+sprite_frames = SubResource("FramesTriangle")
+animation = &"idle"
+
+[node name="ActionLabel" type="Label" parent="ButtonEntry_Triangle"]
+text = "Item"

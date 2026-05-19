@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
 [ext_resource type="PackedScene" uid="uid://cyehcitmifcte" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="4_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BattleActionMenu.tscn" id="5_battle_menu"]
 
 [node name="World" type="Node2D" unique_id=2034841482]
 
@@ -22,3 +23,5 @@ spawn_marker_name = "PlayerTwoSpawn"
 [node name="HUD" parent="." unique_id=2056495564 instance=ExtResource("3_hud")]
 
 [node name="PauseMenu" parent="." unique_id=337874137 instance=ExtResource("4_pause")]
+
+[node name="BattleActionMenu" parent="." instance=ExtResource("5_battle_menu")]

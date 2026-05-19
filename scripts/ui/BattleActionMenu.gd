@@ -56,9 +56,9 @@ func _ready() -> void:
 func _apply_layout() -> void:
 	# Position buttons diagonally — Cross is topmost/rightmost, Triangle lowest/leftmost.
 	# Each entry node is relative to the BattleActionMenu root (which tracks the player).
-	var entries := [_entry_cross, _entry_square, _entry_circle, _entry_triangle]
+	var entries: Array[Node2D] = [_entry_cross, _entry_square, _entry_circle, _entry_triangle]
 	for i in entries.size():
-		var entry := entries[i]
+		var entry: Node2D = entries[i]
 		entry.position = base_offset + button_offset * float(i)
 
 		var sprite := entry.get_node("ButtonSprite") as AnimatedSprite2D
@@ -81,7 +81,7 @@ func show_for_player(player: Node) -> void:
 	_waiting_for_input = false   # wait for fade before accepting input
 
 	# Reset every button to idle.
-	for entry in [_entry_cross, _entry_square, _entry_circle, _entry_triangle]:
+	for entry: Node2D in [_entry_cross, _entry_square, _entry_circle, _entry_triangle]:
 		var sprite := entry.get_node("ButtonSprite") as AnimatedSprite2D
 		if sprite:
 			sprite.play("idle")

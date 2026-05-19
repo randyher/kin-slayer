@@ -139,14 +139,47 @@ func _start_enemy_turn(_enemy: Node) -> void:
 # ACTION SELECTED  (called by BattleActionMenu after player picks)
 # ---------------------------------------------------------------------------
 
-## Receives the chosen action name, then advances the turn.
+## Receives the chosen action name and routes it to the correct handler.
 func action_selected(action: String) -> void:
-	# FUTURE — resolve the action here before advancing:
-	# "attack" → Expedition 33-style combo sequence
-	# "guard"  → parry stance + input window
-	# "swap"   → front/back position swap between players
-	# "item"   → inventory selection submenu
-	print("BattleManager: action selected — ", action)
+	match action:
+		"attack":
+			_do_attack_action()
+		"guard":
+			# FUTURE — parry stance + input timing window.
+			print("BattleManager: Guard — coming in Phase 3")
+			_advance_turn()
+		"swap":
+			# FUTURE — front/back position swap between players.
+			print("BattleManager: Swap — coming in Phase 3")
+			_advance_turn()
+		"item":
+			# FUTURE — inventory selection submenu.
+			print("BattleManager: Item — coming in Phase 3")
+			_advance_turn()
+
+func _do_attack_action() -> void:
+	var current: Dictionary = _turn_order[_current_turn_index]
+	var attacker: Node = current.entity
+
+	# Target the first enemy for now.
+	# FUTURE — target selection UI when multiple enemies exist:
+	# highlight enemies with a cursor, player confirms target before attacking.
+	if enemies.is_empty():
+		_advance_turn()
+		return
+
+	var target: Node = enemies[0]
+	if attacker is Player:
+		(attacker as Player).perform_attack(target)
+	# Turn advances via attack_sequence_complete() once the player finishes.
+
+## Called by Player at the end of _do_attack_sequence().
+## Advances the turn after a brief pause.
+func attack_sequence_complete() -> void:
+	# FUTURE — check enemy HP after damage resolution here.
+	# if target.current_hp <= 0 → remove from turn_order, play death animation,
+	# check for victory condition.
+	await get_tree().create_timer(0.3).timeout
 	_advance_turn()
 
 # ---------------------------------------------------------------------------

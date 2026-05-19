@@ -143,7 +143,18 @@ func _check_input() -> void:
 func _on_button_pressed(button: String, action: String) -> void:
 	_waiting_for_input = false
 
-	# Play the pressed animation on the chosen button.
+	if action == "attack":
+		# For Attack, hide the menu immediately — the player teleport sequence
+		# IS the visual feedback. No need to wait for the press animation.
+		await hide_menu()
+		BattleManager.action_selected(action)
+		return
+
+	# For all other actions, play the pressed animation then hand off.
+	# FUTURE — each action triggers a distinct system in BattleManager Phase 3:
+	# guard  → parry stance + input window
+	# swap   → front/back position change between players
+	# item   → inventory selection submenu
 	var sprite_path := {
 		"cross":    "ButtonEntry_Cross/ButtonSprite",
 		"square":   "ButtonEntry_Square/ButtonSprite",
@@ -154,13 +165,6 @@ func _on_button_pressed(button: String, action: String) -> void:
 	if sprite:
 		sprite.play("pressed")
 
-	# Wait for the press animation to finish, then hand off.
-	# FUTURE — each action triggers a distinct system in BattleManager Phase 3:
-	# attack   → Expedition 33-style combo sequence
-	# guard    → parry stance + input window
-	# swap     → front/back position change between players
-	# item     → inventory selection submenu
 	await get_tree().create_timer(0.35).timeout
-
 	await hide_menu()
 	BattleManager.action_selected(action)

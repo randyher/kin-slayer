@@ -197,7 +197,7 @@ enum HoldGrabMode {
 # ---------------------------------------------------------------------------
 # An enum cleanly names each state so the rest of the code reads like English
 # instead of magic numbers.
-enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE, HANG_EDGE, EXITING }
+enum State { IDLE, RUN, JUMP, FALL, DASH, DUCK, CRAWL, WALL_SLIDE, WALL_CLIMB, LEDGE_HANG, LEDGE_CLIMB, HANG_IDLE, HANG_MOVE, HANG_EDGE, EXITING, BATTLE_ATTACK }
 
 ## The player's current state. Read-only from outside; set via _set_state().
 var state: State = State.IDLE
@@ -343,6 +343,10 @@ var _is_respawning: bool = false
 # Set by BattleManager during the battle intro walk-in.
 # -1 = walk left, 1 = walk right, 0 = stopped.
 var _battle_walk_direction: int = 0
+# Stored before teleporting so the player returns to the right spot after attacking.
+var _pre_attack_position: Vector2 = Vector2.ZERO
+# The enemy node being attacked this sequence.
+var _attack_target: Node2D = null
 
 var _exit_direction: Vector2 = Vector2.ZERO
 var _is_exiting: bool = false
@@ -467,6 +471,11 @@ func _physics_process(delta: float) -> void:
 			_process_dash(input, delta)
 		State.EXITING:
 			_process_exiting(delta)
+		State.BATTLE_ATTACK:
+			# All physics and input suspended during the attack sequence.
+			# BattleManager drives everything — _do_attack_sequence() controls
+			# the full choreography via await.
+			velocity = Vector2.ZERO
 
 	# Carry the player when attached to a moving platform surface.
 	#
@@ -548,7 +557,8 @@ func _physics_process(delta: float) -> void:
 	# so we freeze flip_h to prevent a jarring mirror on direction change.
 	var ledge_locked := (state == State.LEDGE_HANG or state == State.LEDGE_CLIMB
 						 or state == State.HANG_IDLE or state == State.HANG_MOVE
-						 or state == State.HANG_EDGE or state == State.EXITING)
+						 or state == State.HANG_EDGE or state == State.EXITING
+						 or state == State.BATTLE_ATTACK)
 	if state == State.HANG_EDGE:
 		# ClimbJumpPrepare is a single animation — flip it for the right edge.
 		_sprite.flip_h = (_hang_edge_dir == -1)
@@ -1430,7 +1440,7 @@ func _can_stand() -> bool:
 # Only called after movement so velocity is already updated for this frame.
 # ---------------------------------------------------------------------------
 func _update_state() -> void:
-	if state == State.EXITING:
+	if state == State.EXITING or state == State.BATTLE_ATTACK:
 		return
 
 	# Never interrupt an active dash from outside _process_dash().
@@ -1732,6 +1742,55 @@ func arrive_in_room(spawn_position: Vector2) -> void:
 
 # ---------------------------------------------------------------------------
 # BATTLE CONTROL — called by BattleManager during the intro walk-in.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# ATTACK SEQUENCE — called by BattleManager when player picks Attack.
+# Teleports to the enemy, plays animations, returns to original position.
+# ---------------------------------------------------------------------------
+
+## Entry point called by BattleManager. Stores current position and kicks off
+## the choreography coroutine.
+func perform_attack(target: Node2D) -> void:
+	_attack_target       = target
+	_pre_attack_position = global_position
+	_set_state(State.BATTLE_ATTACK)
+	_do_attack_sequence()
+
+func _do_attack_sequence() -> void:
+	# Step 1 — Wind-up: play DashStart in place so the attack has visual lead-in.
+	_sprite.play(&"DashStart")
+	await _sprite.animation_finished
+
+	# Step 2 — Teleport to AttackReceivePoint on the enemy.
+	# Face toward the enemy so the animation reads correctly.
+	var dir: float = sign(_attack_target.global_position.x - _pre_attack_position.x)
+	if dir != 0:
+		_facing_direction = int(dir)
+		_sprite.flip_h    = dir < 0
+	global_position = _attack_target.get_attack_receive_position()
+
+	# Step 3 — Land: play DashEnd at the enemy position.
+	_sprite.play(&"DashEnd")
+	await _sprite.animation_finished
+
+	# Step 4 — Brief pause at enemy position.
+	# FUTURE — action command timing window goes here (Expedition 33 / Mario & Luigi style).
+	# Show a button prompt; perfect timing = bonus damage, miss = base damage only.
+	# FUTURE — combo system: each successful press adds another hit; miss ends combo;
+	# max combo triggers a finisher animation.
+	await get_tree().create_timer(0.2).timeout
+
+	# Step 5 — Return to original position and restore facing.
+	global_position   = _pre_attack_position
+	_sprite.flip_h    = _facing_direction < 0
+
+	# Step 6 — Return to idle so the player is ready for the next turn.
+	_set_state(State.IDLE)
+
+	# Step 7 — Notify BattleManager the sequence is finished.
+	BattleManager.attack_sequence_complete()
+
 # ---------------------------------------------------------------------------
 
 ## Start walking in the given direction (-1 left, 1 right).

@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bv0nw24blg8nv"]
 
-[ext_resource type="Script" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="Script" uid="uid://b3k4igkd0nxcx" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
 [ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
 [ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
 [ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
@@ -8,10 +8,6 @@
 [ext_resource type="Texture2D" uid="uid://cxawdojfme7o3" path="res://assets/sprites/players/p1/Idle/Idle05.png" id="i5"]
 [ext_resource type="Texture2D" uid="uid://djsamati62p3d" path="res://assets/sprites/players/p1/Idle/Idle06.png" id="i6"]
 [ext_resource type="Texture2D" uid="uid://0eowh7ej8qtk" path="res://assets/sprites/players/p1/Idle/Idle07.png" id="i7"]
-
-[sub_resource type="CapsuleShape2D" id="CapsuleShape"]
-radius = 7.0
-height = 42.0
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_enemy"]
 animations = [{
@@ -42,13 +38,20 @@ animations = [{
 "speed": 8.0
 }]
 
-[node name="Enemy" type="CharacterBody2D"]
+[sub_resource type="CapsuleShape2D" id="CapsuleShape"]
+radius = 7.0
+height = 42.0
+
+[node name="Enemy" type="CharacterBody2D" unique_id=1040074580]
 script = ExtResource("1_enemy")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=646547078]
 sprite_frames = SubResource("SpriteFrames_enemy")
 animation = &"Idle"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=578044184]
 position = Vector2(0, 22)
 shape = SubResource("CapsuleShape")
+
+[node name="AttackReceivePoint" type="Marker2D" parent="." unique_id=1556743112]
+position = Vector2(-40, 0)

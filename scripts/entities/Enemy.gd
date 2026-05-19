@@ -20,6 +20,13 @@ extends CharacterBody2D
 ## FUTURE — combat camera reads this to choose zoom level.
 @export_enum("small", "medium", "large", "boss") var size_category: String = "medium"
 
+## Offset from the enemy's origin where attacking players teleport to.
+## Negative x = to the left (players approach from the left by default).
+## Adjust per enemy type in the Inspector.
+## FUTURE — multiple receive points for different attack types
+## (aerial attacks, sweeps, etc.).
+@export var attack_receive_offset: Vector2 = Vector2(-40.0, 0.0)
+
 ## Cached base gravity from project settings.
 var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -56,3 +63,10 @@ func take_damage(amount: int) -> void:
 func heal(amount: int) -> void:
 	current_hp = clampi(current_hp + amount, 0, max_hp)
 	hp_changed.emit(current_hp, max_hp)
+
+## Returns the world position where an attacking player should teleport.
+## Driven by the AttackReceivePoint Marker2D child — move that node in the
+## editor to tune the position per enemy type.
+## Larger enemies may need a greater offset so the player clears the sprite.
+func get_attack_receive_position() -> Vector2:
+	return $AttackReceivePoint.global_position

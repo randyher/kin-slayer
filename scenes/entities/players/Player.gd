@@ -719,8 +719,13 @@ func _process_wall_slide(_input: Vector2, delta: float) -> void:
 # Stamina drains per second; hitting 0 forces an immediate drop with knockback.
 # ---------------------------------------------------------------------------
 func _process_wall_climb(input: Vector2, delta: float) -> void:
-	# Gentle constant press into the wall so is_on_wall() stays true each frame.
-	velocity.x = float(_facing_direction) * 20.0
+	# Press into the wall. Boost the press if the platform is moving opposite
+	# to the facing direction so the platform carry can't overcome the grip.
+	# After carry: net = facing*(|pv|+20) + pv = facing*20 regardless of pv.
+	var wall_press := float(_facing_direction) * 20.0
+	if _platform_velocity.x * float(_facing_direction) < 0.0:
+		wall_press = float(_facing_direction) * (abs(_platform_velocity.x) + 20.0)
+	velocity.x = wall_press
 
 	# Cache the wall normal every frame — same pattern as _process_wall_slide.
 	# This ensures _start_wall_jump() has a valid normal even if contact is lost
@@ -1336,15 +1341,16 @@ func _tick_timers(delta: float) -> void:
 # get_slide_collision() lets us inspect the actual collider and skip Players.
 # ---------------------------------------------------------------------------
 func _is_on_climbable_wall() -> bool:
-	if not is_on_wall():
+	# When already gripping a wall, skip the is_on_wall() requirement.
+	# A moving platform can push the player off the surface for one frame;
+	# the raycasts still detect the wall within 20 px so grip is maintained.
+	# In all other states, is_on_wall() is the cheaper first gate.
+	if state != State.WALL_CLIMB and not is_on_wall():
 		return false
-	# Require wall geometry to exist at BOTH an upper and a lower body sample
-	# point.  The stand capsule runs from y+1 (top) to y+43 (bottom).
-	# Upper sample at y+8  — if the wall surface starts below this the player
-	#   is too far above the platform (feet-only graze from above).
-	# Lower sample at y+32 — if the wall surface ends above this the player
-	#   is too far below the platform (head-only graze from below).
-	# Both must hit for the wall to span most of the body and count as climbable.
+
+	# Require wall geometry at BOTH an upper and a lower body sample point.
+	# Upper at y+2, lower at y+32 — both must hit for the wall to span
+	# most of the body and count as climbable.
 	var space := get_world_2d().direct_space_state
 	var fx    := float(_facing_direction) * 20.0
 	var upper := PhysicsRayQueryParameters2D.create(
@@ -1361,6 +1367,12 @@ func _is_on_climbable_wall() -> bool:
 	lower.exclude = [get_rid()]; lower.collision_mask = collision_mask
 	if space.intersect_ray(lower).is_empty():
 		return false
+
+	# If we're not physically touching the wall (WALL_CLIMB on a moving platform
+	# that briefly pushed us off), trust the raycasts alone.
+	if not is_on_wall():
+		return true
+
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		if col.get_collider() is Player:

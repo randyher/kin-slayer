@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/CombatRoom.tscn" id="1_combat_room"]
+[ext_resource type="PackedScene" path="res://scenes/entities/enemies/Enemy.tscn" id="2_enemy"]
+
+[sub_resource type="RectangleShape2D" id="Shape_bounds"]
+size = Vector2(1152, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_v"]
+size = Vector2(16, 648)
+
+[sub_resource type="RectangleShape2D" id="Shape_exit_h"]
+size = Vector2(1152, 16)
+
+[sub_resource type="RectangleShape2D" id="Shape_floor"]
+size = Vector2(1152, 32)
+
+[node name="Level01_Room03" instance=ExtResource("1_combat_room")]
+
+; Exits will be connected after the battle system is fully implemented.
+; Room03 is a dead-end combat test room for Phase 1.
+
+[node name="RoomBounds" parent="." index="1"]
+position = Vector2(0, 0)
+
+[node name="CollisionShape2D" parent="RoomBounds" index="0"]
+position = Vector2(0, 0)
+shape = SubResource("Shape_bounds")
+
+[node name="ExitRight" parent="." index="2"]
+position = Vector2(576, 0)
+
+[node name="CollisionShape2D" parent="ExitRight" index="0"]
+shape = SubResource("Shape_exit_v")
+
+[node name="ExitLeft" parent="." index="3"]
+position = Vector2(-576, 0)
+
+[node name="CollisionShape2D" parent="ExitLeft" index="0"]
+shape = SubResource("Shape_exit_v")
+
+[node name="ExitTop" parent="." index="4"]
+position = Vector2(0, -324)
+
+[node name="CollisionShape2D" parent="ExitTop" index="0"]
+shape = SubResource("Shape_exit_h")
+
+[node name="ExitBottom" parent="." index="5"]
+position = Vector2(0, 324)
+
+[node name="CollisionShape2D" parent="ExitBottom" index="0"]
+shape = SubResource("Shape_exit_h")
+
+; PlayerOneSpawn and PlayerTwoSpawn are on the RIGHT side so players enter from the right.
+[node name="PlayerOneSpawn" parent="." index="6"]
+position = Vector2(350, 260)
+
+[node name="PlayerTwoSpawn" parent="." index="7"]
+position = Vector2(430, 260)
+
+[node name="PlayerThreeSpawn" parent="." index="8"]
+position = Vector2(0, -280)
+
+[node name="PlayerFourSpawn" parent="." index="9"]
+position = Vector2(0, 280)
+
+; BattlePositionP1 — where P1 stops walking during the intro.
+[node name="BattlePositionP1" parent="."]
+position = Vector2(-350, 280)
+
+; BattlePositionP2 — where P2 stops walking during the intro.
+[node name="BattlePositionP2" parent="."]
+position = Vector2(-100, 280)
+
+; EnemyContainer — add Enemy instances here in the editor.
+; Each enemy should be positioned at its battle start location.
+; Adjust BattlePositionEnemy Marker2D to match.
+[node name="EnemyContainer" parent="."]
+
+[node name="Guard" parent="EnemyContainer" instance=ExtResource("2_enemy")]
+position = Vector2(-350, 248)
+
+; Simple floor so players and enemies land on something.
+[node name="Floor" type="StaticBody2D" parent="."]
+position = Vector2(0, 300)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+shape = SubResource("Shape_floor")

@@ -1,0 +1,54 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
+[ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
+[ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
+[ext_resource type="Texture2D" uid="uid://binvuimse2rya" path="res://assets/sprites/players/p1/Idle/Idle04.png" id="i4"]
+[ext_resource type="Texture2D" uid="uid://cxawdojfme7o3" path="res://assets/sprites/players/p1/Idle/Idle05.png" id="i5"]
+[ext_resource type="Texture2D" uid="uid://djsamati62p3d" path="res://assets/sprites/players/p1/Idle/Idle06.png" id="i6"]
+[ext_resource type="Texture2D" uid="uid://0eowh7ej8qtk" path="res://assets/sprites/players/p1/Idle/Idle07.png" id="i7"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape"]
+radius = 7.0
+height = 42.0
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_enemy"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("i7")
+}],
+"loop": true,
+"name": &"Idle",
+"speed": 8.0
+}]
+
+[node name="Enemy" type="CharacterBody2D"]
+script = ExtResource("1_enemy")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_enemy")
+animation = &"Idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 22)
+shape = SubResource("CapsuleShape")

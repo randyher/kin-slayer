@@ -162,6 +162,11 @@ enum HoldGrabMode {
 ## Speed applied for left/right exits (px/s).
 @export_range(0.0, 500.0, 10.0, "suffix:px/s") var exit_horizontal_speed: float = 300.0
 
+@export_group("Battle")
+## When true, all player input is ignored. BattleManager controls movement.
+## Set automatically by BattleManager.start_battle() — do not set manually.
+@export var battle_locked: bool = false
+
 @export_group("Respawn")
 ## Name of the Marker2D node in the room scene that marks this player's spawn point.
 ## P1 uses "PlayerOneSpawn", P2 uses "PlayerTwoSpawn".
@@ -334,6 +339,10 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 # Guards trigger_respawn() so multiple overlapping spike HitZones can't stack
 # respawn calls on the same frame.
 var _is_respawning: bool = false
+
+# Set by BattleManager during the battle intro walk-in.
+# -1 = walk left, 1 = walk right, 0 = stopped.
+var _battle_walk_direction: int = 0
 
 var _exit_direction: Vector2 = Vector2.ZERO
 var _is_exiting: bool = false
@@ -590,6 +599,20 @@ var _up_pressed: bool = false
 var _up_held: bool    = false
 
 func _get_input() -> Vector2:
+	# When battle_locked, ignore all player input.
+	# BattleManager drives movement via battle_walk() / battle_stop() instead.
+	if battle_locked:
+		_jump_pressed      = false
+		_jump_held         = false
+		_dash_pressed      = false
+		_down_held         = false
+		_grip_held         = false
+		_grip_just_pressed = false
+		_up_pressed        = false
+		_up_held           = false
+		_input_x           = float(_battle_walk_direction)
+		return Vector2(float(_battle_walk_direction), 0.0)
+
 	var dir := Vector2.ZERO
 
 	if player_id == 1:
@@ -1699,6 +1722,24 @@ func arrive_in_room(spawn_position: Vector2) -> void:
 	_set_state(State.IDLE)
 	_invincible_timer = 0.5   # 0.5 s grace period so player can't land on a spike instantly
 	# FUTURE — could show a brief flash or shield indicator during invincibility.
+
+# ---------------------------------------------------------------------------
+# BATTLE CONTROL — called by BattleManager during the intro walk-in.
+# ---------------------------------------------------------------------------
+
+## Start walking in the given direction (-1 left, 1 right).
+## Plays the Run animation in that direction and sets facing.
+func battle_walk(direction: int) -> void:
+	_battle_walk_direction = direction
+	if direction == -1:
+		_facing_direction = -1
+	elif direction == 1:
+		_facing_direction = 1
+
+## Stop walking and return to Idle.
+func battle_stop() -> void:
+	_battle_walk_direction = 0
+	_set_state(State.IDLE)
 
 # ---------------------------------------------------------------------------
 # RESPAWN — called by hazards (e.g. Spike.gd) on player contact.

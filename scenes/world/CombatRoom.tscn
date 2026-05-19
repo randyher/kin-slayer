@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world/CombatRoom.gd" id="1_combat"]
+[ext_resource type="PackedScene" path="res://scenes/world/Room.tscn" id="2_room_base"]
+
+[sub_resource type="RectangleShape2D" id="TriggerShape"]
+size = Vector2(1152, 648)
+
+[node name="CombatRoom" instance=ExtResource("2_room_base")]
+script = ExtResource("1_combat")
+
+[node name="BattlePositionP1" type="Marker2D" parent="."]
+position = Vector2(-150, 0)
+
+[node name="BattlePositionP2" type="Marker2D" parent="."]
+position = Vector2(-50, 0)
+
+[node name="EnemyContainer" type="Node2D" parent="."]
+
+[node name="CombatRoomTrigger" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CombatRoomTrigger"]
+shape = SubResource("TriggerShape")

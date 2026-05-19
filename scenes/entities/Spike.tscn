@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://c1544hnudwqgg" path="res://scripts/components/Spike.gd" id="1_spike"]
 
-[sub_resource type="RectangleShape2D" id="HitShape"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qa6v8"]
 size = Vector2(14, 6)
 
 [node name="Spike" type="StaticBody2D" unique_id=686557002]
@@ -10,7 +10,6 @@ script = ExtResource("1_spike")
 
 [node name="HitZone" type="Area2D" parent="." unique_id=54880815]
 collision_layer = 0
-collision_mask = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitZone" unique_id=908019854]
-shape = SubResource("HitShape")
+shape = SubResource("RectangleShape2D_qa6v8")

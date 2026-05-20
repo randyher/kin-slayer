@@ -166,6 +166,9 @@ enum HoldGrabMode {
 ## When true, all player input is ignored. BattleManager controls movement.
 ## Set automatically by BattleManager.start_battle() — do not set manually.
 @export var battle_locked: bool = false
+## Pause between landing Punch01 and turning away to dash back.
+## Tune for dramatic effect — longer = more weight, shorter = snappier.
+@export_range(0.0, 2.0, 0.05, "suffix:s") var attack_pause_duration: float = 0.2
 
 @export_group("Respawn")
 ## Name of the Marker2D node in the room scene that marks this player's spawn point.
@@ -565,7 +568,10 @@ func _physics_process(delta: float) -> void:
 	else:
 		if input.x != 0 and not ledge_locked:
 			_facing_direction = int(sign(input.x))
-		_sprite.flip_h = _facing_direction == -1
+		# Only auto-update flip when not in a locked state. Locked states
+		# (BATTLE_ATTACK, EXITING, ledge/hang) manage flip_h themselves.
+		if not ledge_locked:
+			_sprite.flip_h = _facing_direction == -1
 
 	# --- Update ledge detection raycasts ---
 	# Always cast toward the direction the player is currently facing.
@@ -1758,37 +1764,62 @@ func perform_attack(target: Node2D) -> void:
 	_do_attack_sequence()
 
 func _do_attack_sequence() -> void:
-	# Step 1 — Wind-up: play DashStart in place so the attack has visual lead-in.
+	# Step 1 — DashStart in place.
+	# Player is already facing the enemy; this is the launch animation.
+	_sprite.flip_h = _facing_direction < 0
 	_sprite.play(&"DashStart")
 	await _sprite.animation_finished
 
-	# Step 2 — Teleport to AttackReceivePoint on the enemy.
-	# Face toward the enemy so the animation reads correctly.
-	var dir: float = sign(_attack_target.global_position.x - _pre_attack_position.x)
-	if dir != 0:
-		_facing_direction = int(dir)
-		_sprite.flip_h    = dir < 0
+	# Step 2 — Teleport to AttackReceivePoint.
+	# Instant; no tween so the DashEnd sells the arrival.
 	global_position = _attack_target.get_attack_receive_position()
 
-	# Step 3 — Land: play DashEnd at the enemy position.
+	# Compute which way the enemy is relative to the receive point and face it.
+	# This ensures the hit animation reads correctly regardless of room layout.
+	var face_dir: float = sign(_attack_target.global_position.x - global_position.x)
+	if face_dir != 0.0:
+		_sprite.flip_h = face_dir < 0.0
+
+	# Step 3 — DashEnd at AttackReceivePoint.
+	# Landing animation — player arrives next to the enemy.
 	_sprite.play(&"DashEnd")
 	await _sprite.animation_finished
 
-	# Step 4 — Brief pause at enemy position.
+	# Step 4 — Punch01 at the enemy.
+	# The actual hit moment. Still facing toward the enemy.
+	_sprite.play(&"Punch01")
+	await _sprite.animation_finished
+
+	# Step 5 — Brief dramatic pause.
+	# Tunable via attack_pause_duration in the Inspector.
 	# FUTURE — action command timing window goes here (Expedition 33 / Mario & Luigi style).
-	# Show a button prompt; perfect timing = bonus damage, miss = base damage only.
-	# FUTURE — combo system: each successful press adds another hit; miss ends combo;
-	# max combo triggers a finisher animation.
-	await get_tree().create_timer(0.2).timeout
+	# Perfect timing = bonus damage or an extra hit; miss = base damage only.
+	# FUTURE — combo system: each successful press adds a hit; miss ends the combo;
+	# max combo length triggers a finisher animation.
+	await get_tree().create_timer(attack_pause_duration).timeout
 
-	# Step 5 — Return to original position and restore facing.
-	global_position   = _pre_attack_position
-	_sprite.flip_h    = _facing_direction < 0
+	# Step 6 — Turn AWAY from the enemy.
+	# This is the ONLY step where the player faces away — it sells the "push off" feel.
+	_sprite.flip_h = face_dir > 0.0
 
-	# Step 6 — Return to idle so the player is ready for the next turn.
+	# Step 7 — DashStart facing away.
+	# Player launches back toward their battle position.
+	_sprite.play(&"DashStart")
+	await _sprite.animation_finished
+
+	# Step 8 — Teleport back to battle position.
+	global_position = _pre_attack_position
+
+	# Step 9 — DashEnd at battle position, facing toward the enemy again.
+	# Restore original facing so the landing reads as ready stance.
+	_sprite.flip_h = _facing_direction < 0
+	_sprite.play(&"DashEnd")
+	await _sprite.animation_finished
+
+	# Step 10 — Return to IDLE.
 	_set_state(State.IDLE)
 
-	# Step 7 — Notify BattleManager the sequence is finished.
+	# Step 11 — Notify BattleManager the full sequence is done.
 	BattleManager.attack_sequence_complete()
 
 # ---------------------------------------------------------------------------

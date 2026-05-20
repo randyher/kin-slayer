@@ -87,6 +87,12 @@
 [ext_resource type="Texture2D" uid="uid://dr1eq5ckljwll" path="res://assets/sprites/players/p1/Hit/Hit01.png" id="h1"]
 [ext_resource type="Texture2D" uid="uid://dl2yo3lcws44d" path="res://assets/sprites/players/p1/Hit/Hit02.png" id="h2"]
 [ext_resource type="Texture2D" uid="uid://dpnjlgshhvynf" path="res://assets/sprites/players/p1/Hit/Hit03.png" id="h3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0101.png" id="pu1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0102.png" id="pu2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0103.png" id="pu3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0104.png" id="pu4"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0105.png" id="pu5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0106.png" id="pu6"]
 [ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
 [ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
 [ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
@@ -693,6 +699,29 @@ animations = [{
 "loop": false,
 "name": &"LookUp",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("pu1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu6")
+}],
+"loop": false,
+"name": &"Punch01",
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,

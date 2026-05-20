@@ -1901,7 +1901,9 @@ func receive_hit() -> void:
 	await get_tree().create_timer(0.1).timeout
 	enable_hurtbox()
 	set_physics_process(prev_physics)
-	_set_state(State.IDLE)
+	# Player is already in State.IDLE during battle, so _set_state(IDLE) would
+	# early-return without replaying the animation. Play Idle directly instead.
+	_sprite.play(&"Idle")
 	BattleManager.hit_sequence_complete()
 	# FUTURE — take_damage() called here once damage system is implemented.
 	# Final signature will be receive_hit(damage: int).

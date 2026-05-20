@@ -50,11 +50,19 @@ func _ready() -> void:
 # BATTLE START  (called by CombatRoom)
 # ---------------------------------------------------------------------------
 
-## Lock all players and start the walk-in intro.
+## Lock all players, pass room reference to enemies, and start the walk-in intro.
 func start_battle(player_list: Array, enemy_list: Array) -> void:
 	players = player_list
 	enemies = enemy_list
 	current_phase = BattlePhase.INTRO
+
+	# Pass the combat room reference to each enemy so they can look up
+	# player attack receive points during their turn.
+	var combat_rooms := get_tree().get_nodes_in_group("combat_rooms")
+	var combat_room: Node = combat_rooms.front() if not combat_rooms.is_empty() else null
+	for enemy in enemies:
+		if enemy.has_method("set_combat_room"):
+			enemy.set_combat_room(combat_room)
 
 	for player in players:
 		if player is Player:
@@ -68,9 +76,11 @@ func start_battle(player_list: Array, enemy_list: Array) -> void:
 
 ## Build the turn order and start the first turn.
 func intro_complete() -> void:
+	print("DEBUG: intro_complete called — players=%d enemies=%d" % [players.size(), enemies.size()])
 	current_phase = BattlePhase.PLAYER_TURN
 	battle_intro_complete.emit()
 	_build_turn_order()
+	print("DEBUG: turn_order built — size=%d" % _turn_order.size())
 	_start_next_turn()
 
 # ---------------------------------------------------------------------------
@@ -81,21 +91,14 @@ func _build_turn_order() -> void:
 	_turn_order.clear()
 	_current_turn_index = 0
 
+	# Players always act before enemies for now.
+	# FUTURE — sort by speed stat when weapons and items that affect initiative exist.
+	# FUTURE — randomise ties when speed stats differ, boss speed increases at low HP.
 	for player in players:
-		_turn_order.append({ "entity": player, "type": "player", "speed": 0 })
+		_turn_order.append({ "entity": player, "type": "player" })
 
 	for enemy in enemies:
-		_turn_order.append({
-			"entity": enemy,
-			"type": "enemy",
-			"speed": enemy.speed if enemy.has_method("get") else 0
-		})
-
-	# Randomise ties, then stable-sort descending by speed.
-	# FUTURE — weapon speed bonuses apply here; items granting haste affect
-	# sort order; boss speed increases when below half HP.
-	_turn_order.shuffle()
-	_turn_order.sort_custom(func(a, b): return a.speed > b.speed)
+		_turn_order.append({ "entity": enemy, "type": "enemy" })
 
 func _start_next_turn() -> void:
 	if _turn_order.is_empty():
@@ -116,24 +119,40 @@ func _start_next_turn() -> void:
 # ---------------------------------------------------------------------------
 
 func _start_player_turn(player: Node) -> void:
+	print("DEBUG: _start_player_turn — _action_menu is null=%s" % str(_action_menu == null))
 	if _action_menu == null:
 		push_warning("BattleManager: BattleActionMenu not found — skipping player turn.")
 		_advance_turn()
 		return
+	print("DEBUG: calling show_for_player")
 	_action_menu.show_for_player(player)
 
 # ---------------------------------------------------------------------------
 # ENEMY TURN
 # ---------------------------------------------------------------------------
 
-func _start_enemy_turn(_enemy: Node) -> void:
-	# Placeholder — enemy waits then passes.
-	# FUTURE — enemy telegraphs its target first (glow toward target player),
-	# then selects an attack pattern. Special attacks trigger bullet-hell phase.
-	await get_tree().create_timer(
-		_action_menu.enemy_turn_duration if _action_menu else 1.5
-	).timeout
+func _start_enemy_turn(enemy: Node) -> void:
+	current_phase = BattlePhase.ENEMY_TURN
+
+	# Brief pause before the enemy acts — feels more deliberate and readable.
+	await get_tree().create_timer(0.5).timeout
+
+	# Select target and run attack. We await the whole sequence so _advance_turn()
+	# is always called exactly once, regardless of whether the attack succeeded.
+	# FUTURE — enemy may choose actions other than attack:
+	# low HP → defensive buff, turn 3 → big telegraph, special → bullet-hell phase.
+	if enemy.has_method("select_target") and enemy.has_method("perform_attack"):
+		var target: Node2D = enemy.select_target(players)
+		if target != null:
+			await enemy.perform_attack(target)
+
+	# Always advance turn — no callback needed.
+	await get_tree().create_timer(0.3).timeout
 	_advance_turn()
+
+## Kept for backwards-compatibility; no longer the primary turn-advance path.
+func enemy_attack_complete() -> void:
+	pass
 
 # ---------------------------------------------------------------------------
 # ACTION SELECTED  (called by BattleActionMenu after player picks)

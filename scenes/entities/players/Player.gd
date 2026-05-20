@@ -1693,11 +1693,13 @@ func start_exit(direction: Vector2) -> void:
 		_facing_direction = -1
 	elif direction == Vector2.RIGHT:
 		_facing_direction = 1
-	# Disable collision so wall tiles don't block the player from sliding
-	# fully off screen. Re-enabled in arrive_in_room() after the transition.
-	_collision_stand.set_deferred("disabled", true)
-	_collision_duck.set_deferred("disabled", true)
+	# _set_state first (it resets collision shapes internally), then override
+	# to disabled so wall tiles don't block the slide off-screen.
+	# Direct assignments are safe — Room.gd calls start_exit via call_deferred.
+	# Re-enabled in arrive_in_room() after the transition.
 	_set_state(State.EXITING)
+	_collision_stand.disabled = true
+	_collision_duck.disabled = true
 
 func _process_exiting(delta: float) -> void:
 	match _exit_direction:

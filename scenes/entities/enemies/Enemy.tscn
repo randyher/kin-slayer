@@ -1,6 +1,11 @@
 [gd_scene format=3 uid="uid://bv0nw24blg8nv"]
 
 [ext_resource type="Script" uid="uid://b3k4igkd0nxcx" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" uid="uid://btwaloixqhhjv" path="res://assets/sprites/players/p1/DashEnd/DashEnd01.png" id="de1"]
+[ext_resource type="Texture2D" uid="uid://bk6b4grs40b0n" path="res://assets/sprites/players/p1/DashEnd/DashEnd02.png" id="de2"]
+[ext_resource type="Texture2D" uid="uid://crnacsouddv3h" path="res://assets/sprites/players/p1/DashEnd/DashEnd03.png" id="de3"]
+[ext_resource type="Texture2D" uid="uid://cm6gb32bq56yw" path="res://assets/sprites/players/p1/DashStart/DashStart01.png" id="ds1"]
+[ext_resource type="Texture2D" uid="uid://di0rjk4y6un8n" path="res://assets/sprites/players/p1/DashStart/DashStart02.png" id="ds2"]
 [ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
 [ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
 [ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
@@ -8,9 +13,40 @@
 [ext_resource type="Texture2D" uid="uid://cxawdojfme7o3" path="res://assets/sprites/players/p1/Idle/Idle05.png" id="i5"]
 [ext_resource type="Texture2D" uid="uid://djsamati62p3d" path="res://assets/sprites/players/p1/Idle/Idle06.png" id="i6"]
 [ext_resource type="Texture2D" uid="uid://0eowh7ej8qtk" path="res://assets/sprites/players/p1/Idle/Idle07.png" id="i7"]
+[ext_resource type="Texture2D" uid="uid://ch6s7hdyb7tb4" path="res://assets/sprites/players/p1/Punch01/Punch0101.png" id="pu1"]
+[ext_resource type="Texture2D" uid="uid://b4k6lw53i35ox" path="res://assets/sprites/players/p1/Punch01/Punch0102.png" id="pu2"]
+[ext_resource type="Texture2D" uid="uid://chvxr6i7fpysg" path="res://assets/sprites/players/p1/Punch01/Punch0103.png" id="pu3"]
+[ext_resource type="Texture2D" uid="uid://dajfw6hcc7nrd" path="res://assets/sprites/players/p1/Punch01/Punch0104.png" id="pu4"]
+[ext_resource type="Texture2D" uid="uid://cjs4tb8lurl3y" path="res://assets/sprites/players/p1/Punch01/Punch0105.png" id="pu5"]
+[ext_resource type="Texture2D" uid="uid://cvpaiomnoswda" path="res://assets/sprites/players/p1/Punch01/Punch0106.png" id="pu6"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_enemy"]
 animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("de1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("de2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("de3")
+}],
+"loop": false,
+"name": &"DashEnd",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("ds1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ds2")
+}],
+"loop": false,
+"name": &"DashStart",
+"speed": 12.0
+}, {
 "frames": [{
 "duration": 1.0,
 "texture": ExtResource("i1")
@@ -36,6 +72,29 @@ animations = [{
 "loop": true,
 "name": &"Idle",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("pu1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("pu6")
+}],
+"loop": false,
+"name": &"Punch01",
+"speed": 12.0
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape"]
@@ -47,7 +106,7 @@ script = ExtResource("1_enemy")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=646547078]
 sprite_frames = SubResource("SpriteFrames_enemy")
-animation = &"Idle"
+animation = &"Punch01"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=578044184]
 position = Vector2(0, 22)

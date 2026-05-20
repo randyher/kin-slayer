@@ -17,6 +17,12 @@ position = Vector2(-50, 0)
 
 [node name="EnemyContainer" type="Node2D" parent="."]
 
+[node name="PlayerOneAttackReceivePoint" type="Marker2D" parent="."]
+position = Vector2(-110, 0)
+
+[node name="PlayerTwoAttackReceivePoint" type="Marker2D" parent="."]
+position = Vector2(-10, 0)
+
 [node name="CombatRoomTrigger" type="Area2D" parent="."]
 collision_layer = 0
 collision_mask = 1

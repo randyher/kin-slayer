@@ -77,8 +77,11 @@ func _on_body_entered_exit(body: Node2D, direction: String) -> void:
 	if next == null:
 		return  # No room connected to this exit — dead end, ignore.
 
-	player.start_exit(dir_vec)
-	RoomManager.player_entered_exit(player, direction, next)
+	# Defer so start_exit() runs after the physics flush — calling it directly
+	# from body_entered fires during collision detection, which disallows the
+	# collision shape changes inside _set_state().
+	player.start_exit.call_deferred(dir_vec)
+	RoomManager.player_entered_exit.call_deferred(player, direction, next)
 
 # ---------------------------------------------------------------------------
 # CAMERA BOUNDS HELPER

@@ -29,6 +29,10 @@ var _action_menu: Node = null
 var _combat_room: Node = null
 ## Counts how many players have finished their swap animation.
 var _swap_players_done: int = 0
+## Set to true by player_downed() or enemy_defeated() when they take over turn
+## management mid-sequence. _start_enemy_turn() checks this before calling
+## _advance_turn() so the two paths don't double-advance the turn.
+var _turn_advanced: bool = false
 
 # ---------------------------------------------------------------------------
 # SIGNALS
@@ -147,6 +151,7 @@ func _start_player_turn(player: Node) -> void:
 
 func _start_enemy_turn(enemy: Node) -> void:
 	current_phase = BattlePhase.ENEMY_TURN
+	_turn_advanced = false   # reset for this turn
 
 	# Brief pause before the enemy acts — feels more deliberate and readable.
 	await get_tree().create_timer(0.5).timeout
@@ -160,9 +165,11 @@ func _start_enemy_turn(enemy: Node) -> void:
 		if target != null:
 			await enemy.perform_attack(target)
 
-	# Always advance turn — no callback needed.
-	await get_tree().create_timer(0.3).timeout
-	_advance_turn()
+	# Only advance normally if player_downed() or enemy_defeated() hasn't
+	# already taken over turn management during this attack sequence.
+	if not _turn_advanced:
+		await get_tree().create_timer(0.3).timeout
+		_advance_turn()
 
 ## Kept for backwards-compatibility; no longer the primary turn-advance path.
 func enemy_attack_complete() -> void:
@@ -271,6 +278,7 @@ func hit_sequence_complete() -> void:
 ## Removes the enemy from the fight, emits hit_sequence_done so the attacker
 ## can continue its sequence, then checks for victory.
 func enemy_defeated(enemy: Node) -> void:
+	_turn_advanced = true   # prevent _start_enemy_turn from double-advancing
 	enemies.erase(enemy)
 	_turn_order = _turn_order.filter(func(entry: Dictionary) -> bool:
 		return entry.entity != enemy)
@@ -289,6 +297,42 @@ func enemy_defeated(enemy: Node) -> void:
 		_current_turn_index = _current_turn_index % _turn_order.size()
 	await get_tree().create_timer(0.5).timeout
 	_start_next_turn()
+
+## Called by Player._do_defeat_sequence() when the Die animation finishes.
+## Removes the player from the turn order and checks for full defeat.
+func player_downed(player: Node) -> void:
+	_turn_advanced = true   # prevent _start_enemy_turn from double-advancing
+	# Unblock the attacker's coroutine — mirrors enemy_defeated().
+	hit_sequence_done.emit()
+
+	_turn_order = _turn_order.filter(func(entry: Dictionary) -> bool:
+		return entry.entity != player)
+
+	# Check if all players are now downed — no one left to fight.
+	var active_players: Array = players.filter(
+		func(p: Node) -> bool: return not (p as Player)._is_downed)
+
+	if active_players.is_empty() or _turn_order.is_empty():
+		await _do_defeat_sequence()
+		return
+
+	# At least one player remains — clamp index and continue the turn.
+	# FUTURE — Option C revive window: remaining player has the option to
+	# spend their turn reviving their partner.
+	# FUTURE — special case if last player and enemy also at low HP:
+	# dramatic last stand moment with unique dialogue.
+	_current_turn_index = _current_turn_index % _turn_order.size()
+	await get_tree().create_timer(0.5).timeout
+	_start_next_turn()
+
+func _do_defeat_sequence() -> void:
+	current_phase = BattlePhase.DEFEAT
+	await get_tree().create_timer(1.0).timeout
+	end_battle()
+	# FUTURE — game over screen: show which enemies defeated the players,
+	# offer retry from room start or last checkpoint.
+	# FUTURE — death penalty: lose items or currency on defeat.
+	# FUTURE — story consequence: some defeats advance the story differently.
 
 func _do_victory_sequence() -> void:
 	current_phase = BattlePhase.VICTORY
@@ -329,15 +373,16 @@ func _advance_turn() -> void:
 # END BATTLE
 # ---------------------------------------------------------------------------
 
-## Unlock all players, disable hurtboxes, hide the menu, and clear all state.
-## Called by _do_victory_sequence() — also the hook for defeat when added.
+## Resets all players via battle_end_reset(), disables enemy hurtboxes,
+## hides the menu, and clears all battle state. Called by victory and defeat.
 func end_battle() -> void:
 	current_phase = BattlePhase.INACTIVE
 
+	# battle_end_reset() handles both active and downed players:
+	# unlocks input, re-enables physics/collision, restores min 1 HP if downed.
 	for player in players:
-		if player is Player:
-			(player as Player).battle_locked = false
-			(player as Player).disable_hurtbox()
+		if player.has_method("battle_end_reset"):
+			player.battle_end_reset()
 
 	for enemy in enemies:
 		if enemy.has_method("disable_hurtbox"):

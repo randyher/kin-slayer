@@ -355,6 +355,11 @@ var _last_wall_normal: Vector2 = Vector2.ZERO
 # respawn calls on the same frame.
 var _is_respawning: bool = false
 
+# Set true when the player is defeated in battle (HP reaches 0).
+# Guards receive_hit() against double-hits on a downed player.
+# Cleared by battle_end_reset() when the battle ends.
+var _is_downed: bool = false
+
 # Set by BattleManager during the battle intro walk-in.
 # -1 = walk left, 1 = walk right, 0 = stopped.
 var _battle_walk_direction: int = 0
@@ -1893,25 +1898,77 @@ func disable_hurtbox() -> void:
 	# FUTURE — disable during jump (airborne)
 
 ## Called by the attacker when its HitBox overlaps this player's HurtBox.
-## Freezes the player, plays Hit animation, then notifies BattleManager.
-func receive_hit() -> void:
-	if _is_respawning:
+func receive_hit(damage: int = 1) -> void:
+	# Guard against double-hits while already downed or hurtbox disabled.
+	if _is_downed:
 		return
-	var prev_physics: bool = is_physics_processing()
+	if not _hurt_box.monitorable:
+		return
+
+	# Apply damage immediately so hp_changed fires and the HUD can react.
+	take_damage(damage)
+
+	# If this hit drained the last HP, skip the Hit animation and go straight
+	# to the defeat sequence. BattleManager.player_downed() emits
+	# hit_sequence_done so the attacker's coroutine continues cleanly.
+	if current_hp <= 0:
+		await _do_defeat_sequence()
+		return
+
+	# HP still > 0 — play the normal hit reaction then resume the turn.
 	set_physics_process(false)
 	velocity = Vector2.ZERO
-	disable_hurtbox()   # prevents double-hits during the animation
+	disable_hurtbox()
 	_sprite.play(&"Hit")
 	await _sprite.animation_finished
 	await get_tree().create_timer(0.1).timeout
 	enable_hurtbox()
-	set_physics_process(prev_physics)
-	# Player is already in State.IDLE during battle, so _set_state(IDLE) would
-	# early-return without replaying the animation. Play Idle directly instead.
+	set_physics_process(true)
+	# State is already IDLE during battle, so _set_state(IDLE) would early-return.
+	# Play Idle directly to restart the animation.
 	_sprite.play(&"Idle")
 	BattleManager.hit_sequence_complete()
-	# FUTURE — take_damage() called here once damage system is implemented.
-	# Final signature will be receive_hit(damage: int).
+	# FUTURE — Option C revive system: downed player can be revived by
+	# partner spending their turn or via a revival item.
+
+## Plays the Die animation and notifies BattleManager the player is downed.
+## Called from receive_hit() when HP reaches 0.
+func _do_defeat_sequence() -> void:
+	_is_downed = true
+	disable_hurtbox()
+	_disable_hitbox()
+	velocity = Vector2.ZERO
+	set_physics_process(false)
+	# Disable world collision so the collapsed player doesn't block others.
+	$CollisionShape2D.set_deferred("disabled", true)
+	# Die animation plays once and holds the last frame.
+	# Player stays collapsed for this fight.
+	_sprite.play(&"Die")
+	await _sprite.animation_finished
+	# FUTURE — Option C revive window: partner has X turns to revive before
+	# player is permanently out for this battle. Revival restores partial HP.
+	# Animation: partner reaches down, downed player gets up slowly.
+	BattleManager.player_downed(self)
+
+## Called by BattleManager.end_battle() regardless of whether the player was
+## downed. Restores the player to a playable state after the battle ends.
+func battle_end_reset() -> void:
+	_is_downed = false
+	battle_locked = false
+	_battle_walk_direction = 0
+	set_physics_process(true)
+	$CollisionShape2D.set_deferred("disabled", false)
+	disable_hurtbox()
+	# Restore to 1 HP minimum so the player can move after the battle.
+	# FUTURE — HP restored to full or partial based on items/skills.
+	# FUTURE — if both players were downed, defeat sequence triggers instead.
+	if current_hp <= 0:
+		current_hp = 1
+		hp_changed.emit(current_hp, max_hp)
+	# Force Idle animation even if state was already IDLE (avoids the
+	# _set_state early-return guard leaving Die frame on screen).
+	_set_state(State.IDLE)
+	_sprite.play(&"Idle")
 
 # ---------------------------------------------------------------------------
 

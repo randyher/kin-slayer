@@ -35,6 +35,11 @@ extends CharacterBody2D
 @export var hitbox_offset: Vector2 = Vector2(18, -5)
 @export var hitbox_size: Vector2   = Vector2(12, 10)
 @export var hurtbox_size: Vector2  = Vector2(16, 32)
+## Damage dealt to a player per successful hit.
+## FUTURE — scales with enemy type; boss enemies deal more damage.
+## FUTURE — damage calculation mirrors player system: base + attack stat
+## - target defense stat, minimum 1 always.
+@export_range(1, 20, 1) var attack_damage: int = 1
 
 ## Cached base gravity from project settings.
 var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
@@ -127,23 +132,29 @@ func set_combat_room(room: Node) -> void:
 ## Lowest HP player is targeted. Ties are resolved randomly.
 ## This lives on Enemy.gd (not BattleManager) so different enemy types
 ## can have different targeting logic without touching the manager.
-func select_target(players: Array) -> Node2D:
-	if players.is_empty():
-		return null
-	if players.size() == 1:
-		return players[0] as Node2D
+func select_target(player_list: Array) -> Node2D:
+	# Downed players are never targeted — enemy only attacks living players.
+	# FUTURE — enemy may target a downed player for a finishing move if the
+	# morality kill system is active.
+	var active: Array = player_list.filter(
+		func(p: Node) -> bool: return not (p as Player)._is_downed)
 
-	# Find the player(s) with the lowest HP.
-	var lowest_hp: int = 999999
+	if active.is_empty():
+		return null
+	if active.size() == 1:
+		return active[0] as Node2D
+
+	# Target the living player with the lowest HP. Ties are resolved randomly.
+	var lowest_hp: float = INF
 	var candidates: Array = []
 
-	for player in players:
+	for player in active:
 		var p := player as Player
 		if p == null:
 			continue
 		if p.current_hp < lowest_hp:
-			lowest_hp   = p.current_hp
-			candidates  = [p]
+			lowest_hp  = p.current_hp
+			candidates = [p]
 		elif p.current_hp == lowest_hp:
 			candidates.append(p)
 
@@ -151,9 +162,8 @@ func select_target(players: Array) -> Node2D:
 	# front position player targeted first
 	# status effects (poison, stun) influence targeting
 	# boss may have scripted targets for story moments
-	# special moves always target a specific player
 
-	candidates.shuffle()   # random among tied-HP players
+	candidates.shuffle()
 	return candidates[0] as Node2D
 
 # ---------------------------------------------------------------------------
@@ -299,7 +309,7 @@ func _do_attack_sequence() -> void:
 		if area.name == "HurtBox":
 			hit_detected = true
 			_disable_hitbox()
-			_attack_target.receive_hit()
+			_attack_target.receive_hit(attack_damage)
 	, CONNECT_ONE_SHOT)
 	_sprite.play(&"Punch01")
 	await _sprite.animation_finished

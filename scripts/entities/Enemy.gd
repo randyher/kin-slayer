@@ -170,20 +170,20 @@ func _enable_hitbox() -> void:
 		offset.x = -offset.x
 	_hit_box.position = offset
 	(_hit_box_shape.shape as RectangleShape2D).size = hitbox_size
-	_hit_box.monitoring  = true
-	_hit_box.monitorable = true
+	_hit_box.set_deferred("monitoring",  true)
+	_hit_box.set_deferred("monitorable", true)
 
 func _disable_hitbox() -> void:
-	_hit_box.monitoring  = false
-	_hit_box.monitorable = false
+	_hit_box.set_deferred("monitoring",  false)
+	_hit_box.set_deferred("monitorable", false)
 
 func enable_hurtbox() -> void:
-	_hurt_box.monitorable = true
-	_hurt_box.monitoring  = false
+	_hurt_box.set_deferred("monitorable", true)
+	_hurt_box.set_deferred("monitoring",  false)
 
 func disable_hurtbox() -> void:
-	_hurt_box.monitorable = false
-	_hurt_box.monitoring  = false
+	_hurt_box.set_deferred("monitorable", false)
+	_hurt_box.set_deferred("monitoring",  false)
 	# FUTURE — disable during enemy invincibility frames
 	# FUTURE — disable during special attack wind-up if temporarily invulnerable
 

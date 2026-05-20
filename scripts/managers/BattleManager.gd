@@ -34,6 +34,8 @@ var _action_menu: Node = null
 signal battle_started
 ## Fired when the walk-in intro finishes and the first turn begins.
 signal battle_intro_complete
+## Fired by hit_sequence_complete() so the attacker knows the hit reaction is done.
+signal hit_sequence_done
 
 # ---------------------------------------------------------------------------
 # READY
@@ -68,6 +70,14 @@ func start_battle(player_list: Array, enemy_list: Array) -> void:
 		if player is Player:
 			(player as Player).battle_locked = true
 
+	# Enable hurtboxes so entities can receive hits during battle.
+	for player in players:
+		if player.has_method("enable_hurtbox"):
+			player.enable_hurtbox()
+	for enemy in enemies:
+		if enemy.has_method("enable_hurtbox"):
+			enemy.enable_hurtbox()
+
 	battle_started.emit()
 
 # ---------------------------------------------------------------------------
@@ -76,11 +86,9 @@ func start_battle(player_list: Array, enemy_list: Array) -> void:
 
 ## Build the turn order and start the first turn.
 func intro_complete() -> void:
-	print("DEBUG: intro_complete called — players=%d enemies=%d" % [players.size(), enemies.size()])
 	current_phase = BattlePhase.PLAYER_TURN
 	battle_intro_complete.emit()
 	_build_turn_order()
-	print("DEBUG: turn_order built — size=%d" % _turn_order.size())
 	_start_next_turn()
 
 # ---------------------------------------------------------------------------
@@ -119,12 +127,10 @@ func _start_next_turn() -> void:
 # ---------------------------------------------------------------------------
 
 func _start_player_turn(player: Node) -> void:
-	print("DEBUG: _start_player_turn — _action_menu is null=%s" % str(_action_menu == null))
 	if _action_menu == null:
 		push_warning("BattleManager: BattleActionMenu not found — skipping player turn.")
 		_advance_turn()
 		return
-	print("DEBUG: calling show_for_player")
 	_action_menu.show_for_player(player)
 
 # ---------------------------------------------------------------------------
@@ -191,6 +197,13 @@ func _do_attack_action() -> void:
 	if attacker is Player:
 		(attacker as Player).perform_attack(target)
 	# Turn advances via attack_sequence_complete() once the player finishes.
+
+## Called by the entity that received a hit after their Hit animation finishes.
+## Signals the attacker to continue its attack sequence.
+func hit_sequence_complete() -> void:
+	hit_sequence_done.emit()
+	# FUTURE — damage resolution here: apply damage to target, update HP display,
+	# check for defeat condition (hp <= 0 → victory/defeat sequence).
 
 ## Called by Player at the end of _do_attack_sequence().
 ## Advances the turn after a brief pause.

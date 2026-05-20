@@ -170,6 +170,15 @@ enum HoldGrabMode {
 ## Tune for dramatic effect — longer = more weight, shorter = snappier.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var attack_pause_duration: float = 0.2
 
+@export_group("Combat")
+## Position of HitBox relative to player center. Positive x = forward (right-facing).
+## Tune in Inspector to align with fist extension in Punch01 animation.
+@export var hitbox_offset: Vector2 = Vector2(18, -5)
+## Size of HitBox rectangle. Tune to match fist reach in Punch01.
+@export var hitbox_size: Vector2 = Vector2(12, 10)
+## Size of HurtBox rectangle. Should cover the player body.
+@export var hurtbox_size: Vector2 = Vector2(16, 32)
+
 @export_group("Respawn")
 ## Name of the Marker2D node in the room scene that marks this player's spawn point.
 ## P1 uses "PlayerOneSpawn", P2 uses "PlayerTwoSpawn".
@@ -227,6 +236,9 @@ var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravi
 ## Area2D that detects overlapping BackgroundHold zones.
 ## Collision mask = 2 matches BackgroundHold.HoldZone's collision_layer = 2.
 @onready var _hold_detector      : Area2D           = $HoldDetector
+@onready var _hit_box            : Area2D           = $HitBox
+@onready var _hit_box_shape      : CollisionShape2D = $HitBox/HitBoxShape
+@onready var _hurt_box           : Area2D           = $HurtBox
 
 ## Which horizontal direction the player is facing: +1 = right, -1 = left.
 ## Used when dashing with no directional input (dash "forward").
@@ -384,6 +396,16 @@ func _ready() -> void:
 	# enters or leaves the player's detection area.
 	_hold_detector.area_entered.connect(_on_hold_area_entered)
 	_hold_detector.area_exited.connect(_on_hold_area_exited)
+	# HitBox: only active during Punch01, never at rest.
+	_hit_box.monitoring  = false
+	_hit_box.monitorable = false
+	_hit_box.collision_layer = 4
+	_hit_box.collision_mask  = 4
+	# HurtBox: disabled outside battle — BattleManager.start_battle() enables it.
+	_hurt_box.monitoring  = false
+	_hurt_box.monitorable = false
+	_hurt_box.collision_layer = 4
+	_hurt_box.collision_mask  = 4
 	# _spawn_point is resolved lazily in trigger_respawn() so the room is
 	# guaranteed to be loaded when we look up the marker.
 	# Wait one frame so all players have added themselves to the "players" group,
@@ -1787,18 +1809,29 @@ func _do_attack_sequence() -> void:
 	_sprite.play(&"DashEnd")
 	await _sprite.animation_finished
 
-	# Step 4 — Punch01 at the enemy.
-	# The actual hit moment. Still facing toward the enemy.
+	# Step 4 — Punch01 with live HitBox detection.
+	# Enable HitBox for the duration of the animation; a one-shot callback on
+	# area_entered fires if the HitBox overlaps the target's HurtBox.
+	var hit_detected: bool = false
+	_enable_hitbox()
+	_hit_box.area_entered.connect(func(area: Area2D) -> void:
+		if area.name == "HurtBox":
+			hit_detected = true
+			_disable_hitbox()
+			_attack_target.receive_hit()
+	, CONNECT_ONE_SHOT)
 	_sprite.play(&"Punch01")
 	await _sprite.animation_finished
+	_disable_hitbox()   # ensure off if the hitbox never overlapped
 
-	# Step 5 — Brief dramatic pause.
-	# Tunable via attack_pause_duration in the Inspector.
+	# Step 5 — Wait for hit reaction, or fall back to a brief pause on miss.
 	# FUTURE — action command timing window goes here (Expedition 33 / Mario & Luigi style).
-	# Perfect timing = bonus damage or an extra hit; miss = base damage only.
-	# FUTURE — combo system: each successful press adds a hit; miss ends the combo;
-	# max combo length triggers a finisher animation.
-	await get_tree().create_timer(attack_pause_duration).timeout
+	# FUTURE — hit_detected = false means attack missed (parried or dodged);
+	# a miss animation could play here; no damage applied on miss.
+	if hit_detected:
+		await BattleManager.hit_sequence_done
+	else:
+		await get_tree().create_timer(attack_pause_duration).timeout
 
 	# Step 6 — Turn AWAY from the enemy.
 	# This is the ONLY step where the player faces away — it sells the "push off" feel.
@@ -1823,6 +1856,55 @@ func _do_attack_sequence() -> void:
 
 	# Step 11 — Notify BattleManager the full sequence is done.
 	BattleManager.attack_sequence_complete()
+
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# HITBOX / HURTBOX HELPERS
+# ---------------------------------------------------------------------------
+
+func _enable_hitbox() -> void:
+	var offset: Vector2 = hitbox_offset
+	if _sprite.flip_h:
+		offset.x = -offset.x
+	_hit_box.position = offset
+	(_hit_box_shape.shape as RectangleShape2D).size = hitbox_size
+	_hit_box.monitoring  = true
+	_hit_box.monitorable = true
+
+func _disable_hitbox() -> void:
+	_hit_box.monitoring  = false
+	_hit_box.monitorable = false
+
+func enable_hurtbox() -> void:
+	_hurt_box.monitorable = true
+	_hurt_box.monitoring  = false
+
+func disable_hurtbox() -> void:
+	_hurt_box.monitorable = false
+	_hurt_box.monitoring  = false
+	# FUTURE — disable during parry window
+	# FUTURE — disable during dodge frames
+	# FUTURE — disable during jump (airborne)
+
+## Called by the attacker when its HitBox overlaps this player's HurtBox.
+## Freezes the player, plays Hit animation, then notifies BattleManager.
+func receive_hit() -> void:
+	if _is_respawning:
+		return
+	var prev_physics: bool = is_physics_processing()
+	set_physics_process(false)
+	velocity = Vector2.ZERO
+	disable_hurtbox()   # prevents double-hits during the animation
+	_sprite.play(&"Hit")
+	await _sprite.animation_finished
+	await get_tree().create_timer(0.1).timeout
+	enable_hurtbox()
+	set_physics_process(prev_physics)
+	_set_state(State.IDLE)
+	BattleManager.hit_sequence_complete()
+	# FUTURE — take_damage() called here once damage system is implemented.
+	# Final signature will be receive_hit(damage: int).
 
 # ---------------------------------------------------------------------------
 

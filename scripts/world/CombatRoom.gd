@@ -32,7 +32,6 @@ var _arrival_threshold: float = 32.0
 func _ready() -> void:
 	super._ready()   # Room._ready() connects exit signals
 	add_to_group("combat_rooms")   # BattleManager finds this room via the group
-	print("DEBUG: CombatRoom _ready — _trigger=%s" % str(_trigger))
 	_trigger.body_entered.connect(_on_trigger_body_entered)
 
 func _physics_process(_delta: float) -> void:
@@ -46,7 +45,6 @@ func _physics_process(_delta: float) -> void:
 # ---------------------------------------------------------------------------
 
 func _on_trigger_body_entered(body: Node2D) -> void:
-	print("DEBUG: trigger body_entered — body=%s is_player=%s" % [body.name, str(body is Player)])
 	if not (body is Player):
 		return
 	if body in _players_in_room:
@@ -54,7 +52,6 @@ func _on_trigger_body_entered(body: Node2D) -> void:
 	_players_in_room.append(body)
 
 	var all_players := get_tree().get_nodes_in_group("players")
-	print("DEBUG: players_in_room=%d / all_players=%d" % [_players_in_room.size(), all_players.size()])
 	if _players_in_room.size() >= all_players.size() and not _battle_started:
 		_start_battle_intro()
 
@@ -63,7 +60,6 @@ func _on_trigger_body_entered(body: Node2D) -> void:
 # ---------------------------------------------------------------------------
 
 func _start_battle_intro() -> void:
-	print("DEBUG: _start_battle_intro called")
 	_battle_started = true
 	var all_players := get_tree().get_nodes_in_group("players")
 	var all_enemies := _enemy_container.get_children()
@@ -109,10 +105,8 @@ func _check_player_arrival() -> void:
 		_on_intro_complete()
 
 func _on_intro_complete() -> void:
-	print("DEBUG: _on_intro_complete — waiting 0.5s")
 	# Brief dramatic pause before handing off to the turn system.
 	await get_tree().create_timer(0.5).timeout
-	print("DEBUG: calling BattleManager.intro_complete()")
 	BattleManager.intro_complete()
 	# FUTURE — battle UI (action menu, HP bars, turn order display) appears here.
 	# FUTURE — victory condition: all enemies hp <= 0 → victory sequence.

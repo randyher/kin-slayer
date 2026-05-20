@@ -31,10 +31,18 @@ extends CharacterBody2D
 ## Mirrors player's same export. Tune per enemy type for different feel.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var attack_pause_duration: float = 0.2
 
+@export_group("Combat")
+@export var hitbox_offset: Vector2 = Vector2(18, -5)
+@export var hitbox_size: Vector2   = Vector2(12, 10)
+@export var hurtbox_size: Vector2  = Vector2(16, 32)
+
 ## Cached base gravity from project settings.
 var _base_gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
-@onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var _sprite        : AnimatedSprite2D = $AnimatedSprite2D
+@onready var _hit_box       : Area2D           = $HitBox
+@onready var _hit_box_shape : CollisionShape2D = $HitBox/HitBoxShape
+@onready var _hurt_box      : Area2D           = $HurtBox
 
 # Stored before teleporting so the enemy can return after attacking.
 var _pre_attack_position: Vector2 = Vector2.ZERO
@@ -56,6 +64,16 @@ func _ready() -> void:
 	current_hp = clampi(current_hp, 0, max_hp)
 	hp_changed.emit(current_hp, max_hp)
 	_sprite.play("Idle")
+	# HitBox: only active during Punch01.
+	_hit_box.monitoring  = false
+	_hit_box.monitorable = false
+	_hit_box.collision_layer = 4
+	_hit_box.collision_mask  = 4
+	# HurtBox: disabled outside battle — BattleManager.start_battle() enables it.
+	_hurt_box.monitoring  = false
+	_hurt_box.monitorable = false
+	_hurt_box.collision_layer = 4
+	_hurt_box.collision_mask  = 4
 
 func _physics_process(delta: float) -> void:
 	# Apply gravity so the enemy stands on platforms correctly.
@@ -142,6 +160,50 @@ func select_target(players: Array) -> Node2D:
 # ATTACK SEQUENCE — mirrors player attack choreography exactly
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# HITBOX / HURTBOX HELPERS
+# ---------------------------------------------------------------------------
+
+func _enable_hitbox() -> void:
+	var offset: Vector2 = hitbox_offset
+	if _sprite.flip_h:
+		offset.x = -offset.x
+	_hit_box.position = offset
+	(_hit_box_shape.shape as RectangleShape2D).size = hitbox_size
+	_hit_box.monitoring  = true
+	_hit_box.monitorable = true
+
+func _disable_hitbox() -> void:
+	_hit_box.monitoring  = false
+	_hit_box.monitorable = false
+
+func enable_hurtbox() -> void:
+	_hurt_box.monitorable = true
+	_hurt_box.monitoring  = false
+
+func disable_hurtbox() -> void:
+	_hurt_box.monitorable = false
+	_hurt_box.monitoring  = false
+	# FUTURE — disable during enemy invincibility frames
+	# FUTURE — disable during special attack wind-up if temporarily invulnerable
+
+## Called by the attacker when its HitBox overlaps this enemy's HurtBox.
+func receive_hit() -> void:
+	velocity = Vector2.ZERO
+	disable_hurtbox()
+	_sprite.play(&"Hit")
+	await _sprite.animation_finished
+	await get_tree().create_timer(0.1).timeout
+	enable_hurtbox()
+	_sprite.play(&"Idle")
+	BattleManager.hit_sequence_complete()
+	# FUTURE — take_damage() called here; check hp after damage;
+	# if hp <= 0 → enemy_died signal → victory sequence triggers.
+
+# ---------------------------------------------------------------------------
+# ATTACK SEQUENCE — mirrors player attack choreography exactly
+# ---------------------------------------------------------------------------
+
 ## Entry point called by BattleManager._start_enemy_turn().
 ## Stores current position, suspends physics, then runs the choreography.
 func perform_attack(target: Node2D) -> void:
@@ -192,17 +254,27 @@ func _do_attack_sequence() -> void:
 	_sprite.play(&"DashEnd")
 	await _sprite.animation_finished
 
-	# Step 4 — Punch01 at the player (the hit moment).
+	# Step 4 — Punch01 with live HitBox detection.
+	var hit_detected: bool = false
+	_enable_hitbox()
+	_hit_box.area_entered.connect(func(area: Area2D) -> void:
+		if area.name == "HurtBox":
+			hit_detected = true
+			_disable_hitbox()
+			_attack_target.receive_hit()
+	, CONNECT_ONE_SHOT)
 	_sprite.play(&"Punch01")
 	await _sprite.animation_finished
+	_disable_hitbox()
 
-	# Step 5 — Brief dramatic pause.
-	# FUTURE — parry/guard window goes here.
-	# If the target player pressed guard (○) before this point they are in guard stance.
-	# Perfect timing = parry → 0 damage.
-	# Good timing = block → reduced damage.
-	# No guard = full damage applied here via _attack_target.take_damage(amount).
-	await get_tree().create_timer(attack_pause_duration).timeout
+	# Step 5 — Wait for hit reaction, or fall back to a brief pause on miss.
+	# FUTURE — parry/guard window goes here: perfect timing = parry → 0 damage,
+	# good timing = block → reduced damage.
+	# FUTURE — hit_detected = false means parried/dodged — no damage applied.
+	if hit_detected:
+		await BattleManager.hit_sequence_done
+	else:
+		await get_tree().create_timer(attack_pause_duration).timeout
 
 	# Step 6 — Turn AWAY from the player. Only this step faces away.
 	_sprite.flip_h = face_dir > 0.0

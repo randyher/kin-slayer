@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://bv0nw24blg8nv"]
 
 [ext_resource type="Script" uid="uid://b3k4igkd0nxcx" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" uid="uid://dr1eq5ckljwll" path="res://assets/sprites/players/p1/Hit/Hit01.png" id="h1"]
+[ext_resource type="Texture2D" uid="uid://dl2yo3lcws44d" path="res://assets/sprites/players/p1/Hit/Hit02.png" id="h2"]
+[ext_resource type="Texture2D" uid="uid://dpnjlgshhvynf" path="res://assets/sprites/players/p1/Hit/Hit03.png" id="h3"]
 [ext_resource type="Texture2D" uid="uid://btwaloixqhhjv" path="res://assets/sprites/players/p1/DashEnd/DashEnd01.png" id="de1"]
 [ext_resource type="Texture2D" uid="uid://bk6b4grs40b0n" path="res://assets/sprites/players/p1/DashEnd/DashEnd02.png" id="de2"]
 [ext_resource type="Texture2D" uid="uid://crnacsouddv3h" path="res://assets/sprites/players/p1/DashEnd/DashEnd03.png" id="de3"]
@@ -95,11 +98,31 @@ animations = [{
 "loop": false,
 "name": &"Punch01",
 "speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("h1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("h2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("h3")
+}],
+"loop": false,
+"name": &"Hit",
+"speed": 12.0
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape"]
 radius = 7.0
 height = 42.0
+
+[sub_resource type="RectangleShape2D" id="EnemyHitBoxShape"]
+size = Vector2(12, 10)
+
+[sub_resource type="RectangleShape2D" id="EnemyHurtBoxShape"]
+size = Vector2(16, 32)
 
 [node name="Enemy" type="CharacterBody2D" unique_id=1040074580]
 script = ExtResource("1_enemy")
@@ -114,3 +137,23 @@ shape = SubResource("CapsuleShape")
 
 [node name="AttackReceivePoint" type="Marker2D" parent="." unique_id=1556743112]
 position = Vector2(-40, 0)
+
+[node name="HitBox" type="Area2D" parent="." unique_id=2001001001]
+collision_layer = 4
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="HitBoxShape" type="CollisionShape2D" parent="HitBox" unique_id=2001001002]
+position = Vector2(18, -5)
+shape = SubResource("EnemyHitBoxShape")
+
+[node name="HurtBox" type="Area2D" parent="." unique_id=2001001003]
+collision_layer = 4
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="HurtBoxShape" type="CollisionShape2D" parent="HurtBox" unique_id=2001001004]
+position = Vector2(0, -10)
+shape = SubResource("EnemyHurtBoxShape")

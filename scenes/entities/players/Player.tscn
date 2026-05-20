@@ -912,6 +912,12 @@ height = 16.0
 [sub_resource type="RectangleShape2D" id="HoldDetectorShape"]
 size = Vector2(14, 0)
 
+[sub_resource type="RectangleShape2D" id="PlayerHitBoxShape"]
+size = Vector2(12, 10)
+
+[sub_resource type="RectangleShape2D" id="PlayerHurtBoxShape"]
+size = Vector2(16, 32)
+
 [node name="Player" type="CharacterBody2D" unique_id=442864075]
 script = ExtResource("1_k3m7n")
 stamina_max = 60.0
@@ -949,3 +955,23 @@ position = Vector2(0, 22)
 shape = SubResource("HoldDetectorShape")
 
 [node name="WeaponSlot" type="Node2D" parent="." unique_id=1787813718]
+
+[node name="HitBox" type="Area2D" parent="." unique_id=1001001001]
+collision_layer = 4
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="HitBoxShape" type="CollisionShape2D" parent="HitBox" unique_id=1001001002]
+position = Vector2(18, -5)
+shape = SubResource("PlayerHitBoxShape")
+
+[node name="HurtBox" type="Area2D" parent="." unique_id=1001001003]
+collision_layer = 4
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="HurtBoxShape" type="CollisionShape2D" parent="HurtBox" unique_id=1001001004]
+position = Vector2(0, -10)
+shape = SubResource("PlayerHurtBoxShape")

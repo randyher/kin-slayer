@@ -25,6 +25,12 @@ extends Node2D
 ## How long the enemy "thinks" before its turn ends (seconds).
 @export var enemy_turn_duration: float = 1.5
 
+@export_group("Unlocked Actions")
+## Show the Guard button in the action menu. Disable to hide until unlocked.
+@export var guard_enabled: bool = false
+## Show the Item button in the action menu. Disable to hide until unlocked.
+@export var item_enabled: bool = false
+
 # ---------------------------------------------------------------------------
 # INTERNAL STATE
 # ---------------------------------------------------------------------------
@@ -54,9 +60,9 @@ func _ready() -> void:
 # ---------------------------------------------------------------------------
 
 func _apply_layout() -> void:
-	# Position buttons diagonally — Cross is topmost/rightmost, Triangle lowest/leftmost.
-	# Each entry node is relative to the BattleActionMenu root (which tracks the player).
-	var entries: Array[Node2D] = [_entry_cross, _entry_square, _entry_circle, _entry_triangle]
+	# Position buttons diagonally — index 0 is bottom (closest to player head),
+	# index 3 is top. Order: Item(△), Guard(□), Swap(○), Attack(✕) bottom→top.
+	var entries: Array[Node2D] = [_entry_triangle, _entry_square, _entry_circle, _entry_cross]
 	for i in entries.size():
 		var entry: Node2D = entries[i]
 		entry.position = base_offset + button_offset * float(i)
@@ -80,11 +86,13 @@ func show_for_player(player: Node) -> void:
 	_is_visible = true
 	_waiting_for_input = false   # wait for fade before accepting input
 
-	# Reset every button to idle.
+	# Reset every button to idle and apply unlock visibility.
 	for entry: Node2D in [_entry_cross, _entry_square, _entry_circle, _entry_triangle]:
 		var sprite := entry.get_node("ButtonSprite") as AnimatedSprite2D
 		if sprite:
 			sprite.play("idle")
+	_entry_square.visible   = guard_enabled
+	_entry_triangle.visible = item_enabled
 
 	_update_position()
 	visible = true
@@ -131,13 +139,13 @@ func _check_input() -> void:
 	if Input.is_action_just_pressed("p%d_jump" % pid):
 		_on_button_pressed("cross", "attack")
 	# □ square  → Guard   (dash button)
-	elif Input.is_action_just_pressed("p%d_dash" % pid):
+	elif Input.is_action_just_pressed("p%d_dash" % pid) and guard_enabled:
 		_on_button_pressed("square", "guard")
 	# ○ circle  → Swap    (grip button)
 	elif Input.is_action_just_pressed("p%d_grip" % pid):
 		_on_button_pressed("circle", "swap")
 	# △ triangle → Item   (up button — no p_pause exists for P2 in all configs)
-	elif Input.is_action_just_pressed("p%d_up" % pid):
+	elif Input.is_action_just_pressed("p%d_up" % pid) and item_enabled:
 		_on_button_pressed("triangle", "item")
 
 func _on_button_pressed(button: String, action: String) -> void:

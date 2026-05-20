@@ -42,6 +42,8 @@ signal battle_intro_complete
 signal hit_sequence_done
 ## Fired internally once both players have finished their swap animations.
 signal _swap_complete
+## Fired by end_battle() after all players are unlocked and state is cleared.
+signal battle_ended
 
 # ---------------------------------------------------------------------------
 # READY
@@ -199,7 +201,9 @@ func _do_attack_action() -> void:
 
 	var target: Node = enemies[0]
 	if attacker is Player:
-		(attacker as Player).perform_attack(target)
+		# Damage is 1 per hit for now.
+		# FUTURE — scale with weapon, attack stat, action command timing bonus.
+		(attacker as Player).perform_attack(target, 1)
 	# Turn advances via attack_sequence_complete() once the player finishes.
 
 ## Both players swap battle positions simultaneously.
@@ -263,6 +267,44 @@ func hit_sequence_complete() -> void:
 	# FUTURE — damage resolution here: apply damage to target, update HP display,
 	# check for defeat condition (hp <= 0 → victory/defeat sequence).
 
+## Called by Enemy._do_defeat_sequence() when the Die animation finishes.
+## Removes the enemy from the fight, emits hit_sequence_done so the attacker
+## can continue its sequence, then checks for victory.
+func enemy_defeated(enemy: Node) -> void:
+	enemies.erase(enemy)
+	_turn_order = _turn_order.filter(func(entry: Dictionary) -> bool:
+		return entry.entity != enemy)
+
+	# Unblock the attacker's coroutine — mirrors hit_sequence_complete().
+	hit_sequence_done.emit()
+
+	if enemies.is_empty():
+		await _do_victory_sequence()
+		return
+
+	# More enemies remain — clamp turn index and continue.
+	# FUTURE — multiple enemies: remaining enemies continue fighting;
+	# turn order adjusts automatically as enemies are removed.
+	if _turn_order.size() > 0:
+		_current_turn_index = _current_turn_index % _turn_order.size()
+	await get_tree().create_timer(0.5).timeout
+	_start_next_turn()
+
+func _do_victory_sequence() -> void:
+	current_phase = BattlePhase.VICTORY
+	# Dramatic pause before unlocking players.
+	await get_tree().create_timer(1.0).timeout
+	end_battle()
+	# FUTURE — morality system prompt before battle fully ends:
+	# both players see kill/spare choice; any player choosing kill →
+	# that player performs a finisher animation; spare → enemy stays collapsed.
+	# Morality score tracks choices and affects story outcomes.
+	# FUTURE — room cleared flag: CombatRoom marks itself cleared so
+	# enemies don't respawn on re-entry; visual change to room (bloodstain, etc).
+	# FUTURE — victory screen showing damage dealt, turns taken, rating (S/A/B/C).
+	# FUTURE — post battle dialogue: characters react to the fight;
+	# first battle has specific scripted dialogue.
+
 ## Called by Player at the end of _do_attack_sequence().
 ## Advances the turn after a brief pause.
 func attack_sequence_complete() -> void:
@@ -287,19 +329,30 @@ func _advance_turn() -> void:
 # END BATTLE
 # ---------------------------------------------------------------------------
 
-## Unlock all players and reset state. Call on victory or defeat.
+## Unlock all players, disable hurtboxes, hide the menu, and clear all state.
+## Called by _do_victory_sequence() — also the hook for defeat when added.
 func end_battle() -> void:
+	current_phase = BattlePhase.INACTIVE
+
 	for player in players:
 		if player is Player:
 			(player as Player).battle_locked = false
-			(player as Player).battle_stop()
+			(player as Player).disable_hurtbox()
+
+	for enemy in enemies:
+		if enemy.has_method("disable_hurtbox"):
+			enemy.disable_hurtbox()
 
 	if _action_menu:
-		_action_menu.visible = false
+		_action_menu.hide_menu()
 
-	players.clear()
-	enemies.clear()
-	_turn_order.clear()
+	players = []
+	enemies = []
+	_turn_order = []
 	_current_turn_index = 0
 	_combat_room = null
-	current_phase = BattlePhase.INACTIVE
+
+	battle_ended.emit()
+	# FUTURE — trigger post battle dialogue using the dialogue system from Room02.
+	# FUTURE — drop items into the room.
+	# FUTURE — unlock door or path forward.

@@ -362,6 +362,10 @@ var _battle_walk_direction: int = 0
 var _pre_attack_position: Vector2 = Vector2.ZERO
 # The enemy node being attacked this sequence.
 var _attack_target: Node2D = null
+# Damage value passed from BattleManager for the current attack.
+# FUTURE — damage calculation: base + attack stat + weapon bonus +
+# action command timing bonus - target defense. Minimum 1 always.
+var _attack_damage: int = 1
 
 var _exit_direction: Vector2 = Vector2.ZERO
 var _is_exiting: bool = false
@@ -1781,7 +1785,8 @@ func arrive_in_room(spawn_position: Vector2) -> void:
 
 ## Entry point called by BattleManager. Stores current position and kicks off
 ## the choreography coroutine.
-func perform_attack(target: Node2D) -> void:
+func perform_attack(target: Node2D, damage: int = 1) -> void:
+	_attack_damage       = damage
 	_attack_target       = target
 	_pre_attack_position = global_position
 	_set_state(State.BATTLE_ATTACK)
@@ -1818,7 +1823,7 @@ func _do_attack_sequence() -> void:
 		if area.name == "HurtBox":
 			hit_detected = true
 			_disable_hitbox()
-			_attack_target.receive_hit()
+			_attack_target.receive_hit(_attack_damage)
 	, CONNECT_ONE_SHOT)
 	_sprite.play(&"Punch01")
 	await _sprite.animation_finished

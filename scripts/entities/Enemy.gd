@@ -188,17 +188,55 @@ func disable_hurtbox() -> void:
 	# FUTURE — disable during special attack wind-up if temporarily invulnerable
 
 ## Called by the attacker when its HitBox overlaps this enemy's HurtBox.
-func receive_hit() -> void:
+## damage: how many HP to subtract (default 1 — tuned via BattleManager).
+func receive_hit(damage: int = 1) -> void:
+	# Guard against double-hits while hurtbox is already disabled.
+	if not _hurt_box.monitorable:
+		return
+
+	# Apply damage immediately so hp_changed fires and HUD can react.
+	take_damage(damage)
+
+	# If this hit drained the last HP, skip the Hit animation and go straight
+	# to the defeat sequence. BattleManager.enemy_defeated() emits
+	# hit_sequence_done so the attacker's coroutine continues cleanly.
+	if current_hp <= 0:
+		await _do_defeat_sequence()
+		return
+
+	# HP still > 0 — play the normal hit reaction.
 	velocity = Vector2.ZERO
-	disable_hurtbox()
+	disable_hurtbox()   # prevents double-hits during the animation
 	_sprite.play(&"Hit")
 	await _sprite.animation_finished
 	await get_tree().create_timer(0.1).timeout
 	enable_hurtbox()
 	_sprite.play(&"Idle")
 	BattleManager.hit_sequence_complete()
-	# FUTURE — take_damage() called here; check hp after damage;
-	# if hp <= 0 → enemy_died signal → victory sequence triggers.
+	# FUTURE — morality prompt appears when hp reaches 0 instead of
+	# _do_defeat_sequence() directly; any player can choose kill or spare.
+
+## Plays the Die animation and notifies BattleManager the enemy is defeated.
+## Called from receive_hit() when HP reaches 0.
+func _do_defeat_sequence() -> void:
+	# Lock down the enemy completely so nothing can interact with it.
+	disable_hurtbox()
+	_disable_hitbox()
+	velocity = Vector2.ZERO
+	set_physics_process(false)
+	# Disable world collision so the collapsed enemy doesn't block players.
+	$CollisionShape2D.set_deferred("disabled", true)
+
+	# Die animation — plays once and holds the last frame.
+	# Enemy stays collapsed on the ground; not hidden or freed yet.
+	_sprite.play(&"Die")
+	await _sprite.animation_finished
+	# FUTURE — morality prompt appears here before this sequence in the next
+	# prompt: kill → player delivers final attack, spare → enemy stays collapsed.
+	# Both paths lead to battle end.
+
+	# Tell BattleManager this enemy is out of the fight.
+	BattleManager.enemy_defeated(self)
 
 # ---------------------------------------------------------------------------
 # ATTACK SEQUENCE — mirrors player attack choreography exactly

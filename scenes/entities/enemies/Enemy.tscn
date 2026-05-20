@@ -1,6 +1,15 @@
 [gd_scene format=3 uid="uid://bv0nw24blg8nv"]
 
 [ext_resource type="Script" uid="uid://b3k4igkd0nxcx" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" uid="uid://bwj3ut1okpjbs" path="res://assets/sprites/players/p1/Die/Die01.png" id="di1"]
+[ext_resource type="Texture2D" uid="uid://bp2v3lv6x87hn" path="res://assets/sprites/players/p1/Die/Die02.png" id="di2"]
+[ext_resource type="Texture2D" uid="uid://solqw835us53" path="res://assets/sprites/players/p1/Die/Die03.png" id="di3"]
+[ext_resource type="Texture2D" uid="uid://d1qfkflu6wwg1" path="res://assets/sprites/players/p1/Die/Die04.png" id="di4"]
+[ext_resource type="Texture2D" uid="uid://boekl3imvl048" path="res://assets/sprites/players/p1/Die/Die05.png" id="di5"]
+[ext_resource type="Texture2D" uid="uid://wjctrrw4ahsy" path="res://assets/sprites/players/p1/Die/Die06.png" id="di6"]
+[ext_resource type="Texture2D" uid="uid://4a3ysja460ul" path="res://assets/sprites/players/p1/Die/Die07.png" id="di7"]
+[ext_resource type="Texture2D" uid="uid://bpta4fxe4wkd2" path="res://assets/sprites/players/p1/Die/Die08.png" id="di8"]
+[ext_resource type="Texture2D" uid="uid://ckq87gx4qytxh" path="res://assets/sprites/players/p1/Die/Die09.png" id="di9"]
 [ext_resource type="Texture2D" uid="uid://dr1eq5ckljwll" path="res://assets/sprites/players/p1/Hit/Hit01.png" id="h1"]
 [ext_resource type="Texture2D" uid="uid://dl2yo3lcws44d" path="res://assets/sprites/players/p1/Hit/Hit02.png" id="h2"]
 [ext_resource type="Texture2D" uid="uid://dpnjlgshhvynf" path="res://assets/sprites/players/p1/Hit/Hit03.png" id="h3"]
@@ -112,6 +121,38 @@ animations = [{
 "loop": false,
 "name": &"Hit",
 "speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("di1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("di9")
+}],
+"loop": false,
+"name": &"Die",
+"speed": 10.0
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape"]

@@ -350,7 +350,7 @@ position = Vector2(-28, 211)
 position = Vector2(27, 14)
 
 [node name="PlayerOneAttackReceivePoint" parent="." index="13"]
-position = Vector2(169, 226)
+position = Vector2(172, 226)
 
 [node name="Floor" type="StaticBody2D" parent="." index="14" unique_id=2114930534]
 position = Vector2(0, 300)

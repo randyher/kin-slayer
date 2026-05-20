@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+; Root: AnimatableBody2D with MovingPlatform.gd.
+; sync_to_physics = true (default) lets the engine push CharacterBody2D players.
+;
+; To add your tile visual:
+;   Add a TileMapLayer child and assign your existing TileSet — disable its
+;   physics layers so collision stays on this node's CollisionShape2D only.
+;   Or add a Sprite2D / AnimatedSprite2D as a child instead.
+;
+; Tune movement in the Inspector:
+;   axis           — HORIZONTAL or VERTICAL
+;   speed          — cycles per second (0.5 = slow, 2.0 = fast)
+;   distance       — pixels each direction from the placed position
+;   platform_width / platform_height — sizes the collision box
+
+[ext_resource type="Script" path="res://scripts/components/MovingPlatform.gd" id="1_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(64, 16)
+
+[node name="MovingPlatform" type="AnimatableBody2D"]
+script = ExtResource("1_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")

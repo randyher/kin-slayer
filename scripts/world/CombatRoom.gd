@@ -124,3 +124,12 @@ func get_player_receive_point(player_id: int) -> Vector2:
 		1: return _receive_p1.global_position if _receive_p1 != null else Vector2.ZERO
 		2: return _receive_p2.global_position if _receive_p2 != null else Vector2.ZERO
 		_: return Vector2.ZERO
+
+## Swap the two attack receive points so enemies target the correct positions
+## after players exchange battle spots. Called by BattleManager on swap.
+func swap_receive_points() -> void:
+	if _receive_p1 == null or _receive_p2 == null:
+		return
+	var tmp: Vector2 = _receive_p1.global_position
+	_receive_p1.global_position = _receive_p2.global_position
+	_receive_p2.global_position = tmp

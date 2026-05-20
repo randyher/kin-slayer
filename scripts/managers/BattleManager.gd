@@ -25,6 +25,10 @@ var _current_turn_index: int = 0
 ## Reference to the BattleActionMenu node in World.tscn.
 ## Resolved once in _ready() via the "battle_ui" group.
 var _action_menu: Node = null
+## The active CombatRoom — stored at battle start so swap can update receive points.
+var _combat_room: Node = null
+## Counts how many players have finished their swap animation.
+var _swap_players_done: int = 0
 
 # ---------------------------------------------------------------------------
 # SIGNALS
@@ -36,6 +40,8 @@ signal battle_started
 signal battle_intro_complete
 ## Fired by hit_sequence_complete() so the attacker knows the hit reaction is done.
 signal hit_sequence_done
+## Fired internally once both players have finished their swap animations.
+signal _swap_complete
 
 # ---------------------------------------------------------------------------
 # READY
@@ -61,10 +67,10 @@ func start_battle(player_list: Array, enemy_list: Array) -> void:
 	# Pass the combat room reference to each enemy so they can look up
 	# player attack receive points during their turn.
 	var combat_rooms := get_tree().get_nodes_in_group("combat_rooms")
-	var combat_room: Node = combat_rooms.front() if not combat_rooms.is_empty() else null
+	_combat_room = combat_rooms.front() if not combat_rooms.is_empty() else null
 	for enemy in enemies:
 		if enemy.has_method("set_combat_room"):
-			enemy.set_combat_room(combat_room)
+			enemy.set_combat_room(_combat_room)
 
 	for player in players:
 		if player is Player:
@@ -174,9 +180,7 @@ func action_selected(action: String) -> void:
 			print("BattleManager: Guard — coming in Phase 3")
 			_advance_turn()
 		"swap":
-			# FUTURE — front/back position swap between players.
-			print("BattleManager: Swap — coming in Phase 3")
-			_advance_turn()
+			_do_swap_action()
 		"item":
 			# FUTURE — inventory selection submenu.
 			print("BattleManager: Item — coming in Phase 3")
@@ -197,6 +201,60 @@ func _do_attack_action() -> void:
 	if attacker is Player:
 		(attacker as Player).perform_attack(target)
 	# Turn advances via attack_sequence_complete() once the player finishes.
+
+## Both players swap battle positions simultaneously.
+## Each calls swap_player_done() when their animation finishes; once both
+## have reported in, _swap_complete fires and the turn advances.
+func _do_swap_action() -> void:
+	if players.size() < 2:
+		_advance_turn()
+		return
+
+	var p1: Player = null
+	var p2: Player = null
+	for player in players:
+		if player is Player:
+			if p1 == null:
+				p1 = player as Player
+			else:
+				p2 = player as Player
+
+	if p1 == null or p2 == null:
+		_advance_turn()
+		return
+
+	var p1_pos := p1.global_position
+	var p2_pos := p2.global_position
+
+	# Both players pass through the same position during the swap.
+	# Without a collision exception they depenetrate each other, causing a
+	# small nudge in the facing direction. Exclude them for the duration.
+	p1.add_collision_exception_with(p2)
+	p2.add_collision_exception_with(p1)
+
+	_swap_players_done = 0
+	# Start both coroutines without awaiting — they run in parallel.
+	# Each will call swap_player_done() when finished.
+	p1.perform_swap(p2_pos)
+	p2.perform_swap(p1_pos)
+
+	await _swap_complete
+
+	p1.remove_collision_exception_with(p2)
+	p2.remove_collision_exception_with(p1)
+
+	# Swap the attack receive points so enemies target the correct new positions.
+	if _combat_room != null and _combat_room.has_method("swap_receive_points"):
+		_combat_room.swap_receive_points()
+
+	await get_tree().create_timer(0.3).timeout
+	_advance_turn()
+
+## Called by each player when their swap animation finishes.
+func swap_player_done() -> void:
+	_swap_players_done += 1
+	if _swap_players_done >= 2:
+		_swap_complete.emit()
 
 ## Called by the entity that received a hit after their Hit animation finishes.
 ## Signals the attacker to continue its attack sequence.
@@ -243,4 +301,5 @@ func end_battle() -> void:
 	enemies.clear()
 	_turn_order.clear()
 	_current_turn_index = 0
+	_combat_room = null
 	current_phase = BattlePhase.INACTIVE

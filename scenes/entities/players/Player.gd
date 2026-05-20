@@ -1924,6 +1924,30 @@ func battle_stop() -> void:
 	_battle_walk_direction = 0
 	_set_state(State.IDLE)
 
+## Swap animation: DashStart → teleport to target → DashEnd → Idle.
+## Called by BattleManager._do_swap_action() on both players simultaneously
+## (no await at the call site so both coroutines run in parallel).
+## Calls BattleManager.swap_player_done() when finished.
+func perform_swap(target_position: Vector2) -> void:
+	# Lock physics the same way perform_attack() does — BATTLE_ATTACK zeroes
+	# velocity every frame and skips _update_state(), preventing friction or
+	# floor-collision resolution from nudging the player during the animation.
+	_set_state(State.BATTLE_ATTACK)
+	var face_dir: float = sign(target_position.x - global_position.x)
+	if face_dir != 0.0:
+		_sprite.flip_h = face_dir < 0.0
+	_sprite.play(&"DashStart")
+	await _sprite.animation_finished
+
+	global_position = target_position
+
+	_sprite.play(&"DashEnd")
+	await _sprite.animation_finished
+
+	_sprite.play(&"Idle")
+	_set_state(State.IDLE)
+	BattleManager.swap_player_done()
+
 # ---------------------------------------------------------------------------
 # RESPAWN — called by hazards (e.g. Spike.gd) on player contact.
 # Celeste-style reset: no HP lost, play Hit animation, brief pause, teleport.

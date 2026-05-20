@@ -350,7 +350,7 @@ position = Vector2(-28, 211)
 position = Vector2(27, 14)
 
 [node name="PlayerOneAttackReceivePoint" parent="." index="13"]
-position = Vector2(172, 226)
+position = Vector2(172, 225)
 
 [node name="Floor" type="StaticBody2D" parent="." index="14" unique_id=2114930534]
 position = Vector2(0, 300)
@@ -364,7 +364,7 @@ tile_map_data = PackedByteArray("AADh/xAAAAATAAoAAADi/xAAAAAQAAoAAADj/xAAAAATAAo
 tile_set = SubResource("TileSet_mitba")
 
 [node name="PlayerTwoAttackReceivePoint" parent="." index="16"]
-position = Vector2(280, 225)
+position = Vector2(277, 225)
 
 [node name="CollisionShape2D" parent="CombatRoomTrigger" index="0"]
 visible = false

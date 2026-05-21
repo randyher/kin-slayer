@@ -345,6 +345,8 @@ position = Vector2(302, 225)
 
 [node name="Guard" parent="EnemyContainer" index="0" unique_id=6338834 instance=ExtResource("2_enemy")]
 position = Vector2(-28, 211)
+max_hp = 10
+current_hp = 10
 
 [node name="AttackReceivePoint" parent="EnemyContainer/Guard" index="2" unique_id=1556743112]
 position = Vector2(27, 14)

@@ -25,6 +25,10 @@ var _current_turn_index: int = 0
 ## Reference to the BattleActionMenu node in World.tscn.
 ## Resolved once in _ready() via the "battle_ui" group.
 var _action_menu: Node = null
+## Reference to the ActionCommand timing node in World.tscn.
+## Resolved once in _ready() by node path. Used by Player._do_attack_sequence()
+## to show the shrinking circle timing indicator during combo hits.
+var _action_command: Node = null
 ## The active CombatRoom — stored at battle start so swap can update receive points.
 var _combat_room: Node = null
 ## Counts how many players have finished their swap animation.
@@ -54,11 +58,14 @@ signal battle_ended
 # ---------------------------------------------------------------------------
 
 func _ready() -> void:
-	# Wait one frame so World.tscn is fully built before we search for the menu.
+	# Wait one frame so World.tscn is fully built before we search for UI nodes.
 	await get_tree().process_frame
 	var menus := get_tree().get_nodes_in_group("battle_ui")
 	if menus.size() > 0:
 		_action_menu = menus[0]
+	var cmds := get_tree().get_nodes_in_group("action_command")
+	if cmds.size() > 0:
+		_action_command = cmds[0]
 
 # ---------------------------------------------------------------------------
 # BATTLE START  (called by CombatRoom)

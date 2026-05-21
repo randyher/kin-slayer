@@ -1799,72 +1799,149 @@ func perform_attack(target: Node2D, damage: int = 1) -> void:
 
 func _do_attack_sequence() -> void:
 	# Step 1 — DashStart in place.
-	# Player is already facing the enemy; this is the launch animation.
 	_sprite.flip_h = _facing_direction < 0
 	_sprite.play(&"DashStart")
 	await _sprite.animation_finished
 
 	# Step 2 — Teleport to AttackReceivePoint.
-	# Instant; no tween so the DashEnd sells the arrival.
 	global_position = _attack_target.get_attack_receive_position()
 
-	# Compute which way the enemy is relative to the receive point and face it.
-	# This ensures the hit animation reads correctly regardless of room layout.
 	var face_dir: float = sign(_attack_target.global_position.x - global_position.x)
 	if face_dir != 0.0:
 		_sprite.flip_h = face_dir < 0.0
 
 	# Step 3 — DashEnd at AttackReceivePoint.
-	# Landing animation — player arrives next to the enemy.
 	_sprite.play(&"DashEnd")
 	await _sprite.animation_finished
 
-	# Step 4 — Punch01 with live HitBox detection.
-	# Enable HitBox for the duration of the animation; a one-shot callback on
-	# area_entered fires if the HitBox overlaps the target's HurtBox.
-	var hit_detected: bool = false
+	# -----------------------------------------------------------------------
+	# HIT 1 — always lands, no timing required.
+	# -----------------------------------------------------------------------
+	var hit1_detected: bool = false
 	_enable_hitbox()
 	_hit_box.area_entered.connect(func(area: Area2D) -> void:
 		if area.name == "HurtBox":
-			hit_detected = true
+			hit1_detected = true
 			_disable_hitbox()
 			_attack_target.receive_hit(_attack_damage)
 	, CONNECT_ONE_SHOT)
 	_sprite.play(&"Punch01")
 	await _sprite.animation_finished
-	_disable_hitbox()   # ensure off if the hitbox never overlapped
+	_disable_hitbox()
 
-	# Step 5 — Wait for hit reaction, or fall back to a brief pause on miss.
-	# FUTURE — action command timing window goes here (Expedition 33 / Mario & Luigi style).
-	# FUTURE — hit_detected = false means attack missed (parried or dodged);
-	# a miss animation could play here; no damage applied on miss.
-	if hit_detected:
+	if hit1_detected:
 		await BattleManager.hit_sequence_done
+	# FUTURE — if hit1_detected = false, target dodged or parried;
+	# skip the combo entirely and go straight to the return dash.
+
+	# -----------------------------------------------------------------------
+	# HIT 2 — timing required. Circle shrinks toward ✕ above player's head.
+	# FUTURE — parry/guard system: enemy can interrupt combo with a counter
+	# if the player misses Hit 2 timing; enemy gets a free attack next turn.
+	# FUTURE — weapon-specific combos: each weapon has its own combo chain.
+	# -----------------------------------------------------------------------
+
+	# Tracks whether the full combo completed without a miss. Used to decide
+	# whether to turn the player away before the return dash:
+	#   Miss at any point  → turn away (dramatic retreat)
+	#   All hits successful → retreat facing forward (no turn-around)
+	var combo_complete: bool = false
+
+	var action_cmd: Node = BattleManager._action_command
+	if action_cmd != null:
+		# Brief Idle pose before the prompt — signals "get ready for the next hit."
+		_sprite.play(&"Idle")
+		await get_tree().create_timer(0.2).timeout
+		action_cmd.activate(player_id, action_cmd.timing_window, self)
+		var hit2_success: bool = await action_cmd.timing_result
+
+		if hit2_success:
+			var hit2_detected: bool = false
+			# Re-apply facing direction — awaits between Hit 1 and here can drift flip_h.
+			if face_dir != 0.0:
+				_sprite.flip_h = face_dir < 0.0
+			_enable_hitbox()
+			_hit_box.area_entered.connect(func(area: Area2D) -> void:
+				if area.name == "HurtBox":
+					hit2_detected = true
+					_disable_hitbox()
+					_attack_target.receive_hit(action_cmd.hit2_damage)
+			, CONNECT_ONE_SHOT)
+			# Punch02 — second hit of combo, plays on successful Hit 2 timing.
+			_sprite.play(&"Punch02")
+			await _sprite.animation_finished
+			_disable_hitbox()
+
+			if hit2_detected:
+				await BattleManager.hit_sequence_done
+
+			# Return to Idle between hits — the pose change signals the player
+			# that the next timing prompt is about to appear.
+			_sprite.play(&"Idle")
+			await get_tree().create_timer(0.2).timeout
+
+			# -------------------------------------------------------------------
+			# HIT 3 — slightly tighter timing window. Deals bonus damage.
+			# FUTURE — combo meter: track total successful combos; high combo =
+			# damage multiplier; resets on miss or turn end.
+			# -------------------------------------------------------------------
+			action_cmd.activate(player_id, action_cmd.hit3_timing_window, self)
+			var hit3_success: bool = await action_cmd.timing_result
+
+			if hit3_success:
+				var hit3_detected: bool = false
+				if face_dir != 0.0:
+					_sprite.flip_h = face_dir < 0.0
+				_enable_hitbox()
+				_hit_box.area_entered.connect(func(area: Area2D) -> void:
+					if area.name == "HurtBox":
+						hit3_detected = true
+						_disable_hitbox()
+						_attack_target.receive_hit(action_cmd.hit3_damage)
+				, CONNECT_ONE_SHOT)
+				# Punch03 — third hit, deals bonus damage on success.
+				_sprite.play(&"Punch03")
+				await _sprite.animation_finished
+				_disable_hitbox()
+
+				if hit3_detected:
+					await BattleManager.hit_sequence_done
+
+				combo_complete = true   # all three hits landed
+			# Miss on Hit 3 — combo ends; Hit 1 + Hit 2 damage already applied.
+
+		# Miss on Hit 2 — combo ends after Hit 1 damage.
+		# FUTURE — special miss reaction: enemy could counter attack on miss.
 	else:
-		await get_tree().create_timer(attack_pause_duration).timeout
+		# No timing system active — treat as combo complete so the return
+		# dash plays without the dramatic turn-away.
+		combo_complete = true
 
-	# Step 6 — Turn AWAY from the enemy.
-	# This is the ONLY step where the player faces away — it sells the "push off" feel.
-	_sprite.flip_h = face_dir > 0.0
+	# Step 7 — Brief dramatic pause before the return dash.
+	await get_tree().create_timer(attack_pause_duration).timeout
 
-	# Step 7 — DashStart facing away.
-	# Player launches back toward their battle position.
+	# Step 8 — Turn AWAY only on a miss. On a full successful combo the player
+	# retreats without flipping, which reads as a clean dash-back rather than
+	# a telegraphed turn. On miss the flip sells the "pushed back" feel.
+	if not combo_complete:
+		_sprite.flip_h = face_dir > 0.0
+
+	# Step 9 — DashStart facing away.
 	_sprite.play(&"DashStart")
 	await _sprite.animation_finished
 
-	# Step 8 — Teleport back to battle position.
+	# Step 10 — Teleport back to battle position.
 	global_position = _pre_attack_position
 
-	# Step 9 — DashEnd at battle position, facing toward the enemy again.
-	# Restore original facing so the landing reads as ready stance.
+	# Step 11 — DashEnd at battle position, facing toward the enemy again.
 	_sprite.flip_h = _facing_direction < 0
 	_sprite.play(&"DashEnd")
 	await _sprite.animation_finished
 
-	# Step 10 — Return to IDLE.
+	# Step 12 — Return to IDLE.
 	_set_state(State.IDLE)
 
-	# Step 11 — Notify BattleManager the full sequence is done.
+	# Step 13 — Notify BattleManager the full sequence is done.
 	BattleManager.attack_sequence_complete()
 
 # ---------------------------------------------------------------------------

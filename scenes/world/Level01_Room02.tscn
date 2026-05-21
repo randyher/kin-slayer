@@ -852,10 +852,10 @@ position = Vector2(0, 324)
 shape = SubResource("Shape_exit_h")
 
 [node name="PlayerOneSpawn" parent="." index="6"]
-position = Vector2(-515, -163)
+position = Vector2(-541, -264)
 
 [node name="PlayerTwoSpawn" parent="." index="7"]
-position = Vector2(-542, -267)
+position = Vector2(-557, -264)
 
 [node name="Platforms" type="TileMapLayer" parent="." index="10" unique_id=1132421879]
 position = Vector2(59, 18)
@@ -916,6 +916,7 @@ position = Vector2(50, -19)
 hit_size = Vector2(64, 23)
 
 [node name="Background" type="TileMapLayer" parent="." index="20" unique_id=1178859445]
+visible = false
 z_index = -15
 position = Vector2(-59, -5)
 scale = Vector2(2, 2)

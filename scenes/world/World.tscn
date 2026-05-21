@@ -4,7 +4,8 @@
 [ext_resource type="PackedScene" path="res://scenes/world/RoomCamera.tscn" id="2_camera"]
 [ext_resource type="PackedScene" uid="uid://cyehcitmifcte" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="4_pause"]
-[ext_resource type="PackedScene" path="res://scenes/ui/BattleActionMenu.tscn" id="5_battle_menu"]
+[ext_resource type="PackedScene" uid="uid://dbb3n0vm8jxkj" path="res://scenes/ui/BattleActionMenu.tscn" id="5_battle_menu"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ActionCommand.tscn" id="6_action_cmd"]
 
 [node name="World" type="Node2D" unique_id=2034841482]
 
@@ -24,4 +25,7 @@ spawn_marker_name = "PlayerTwoSpawn"
 
 [node name="PauseMenu" parent="." unique_id=337874137 instance=ExtResource("4_pause")]
 
-[node name="BattleActionMenu" parent="." instance=ExtResource("5_battle_menu")]
+[node name="BattleActionMenu" parent="." unique_id=1117156768 instance=ExtResource("5_battle_menu")]
+
+[node name="ActionCommand" parent="." unique_id=22686006 instance=ExtResource("6_action_cmd")]
+button_radius = 11.0

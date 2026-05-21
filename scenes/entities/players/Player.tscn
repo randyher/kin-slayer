@@ -93,6 +93,17 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0104.png" id="pu4"]
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0105.png" id="pu5"]
 [ext_resource type="Texture2D" path="res://assets/sprites/players/p1/Punch01/Punch0106.png" id="pu6"]
+[ext_resource type="Texture2D" uid="uid://x9yld1x0kdbk" path="res://assets/sprites/players/p1/Punch02/Punch0201.png" id="p21"]
+[ext_resource type="Texture2D" uid="uid://klqqrpdawkm0" path="res://assets/sprites/players/p1/Punch02/Punch0202.png" id="p22"]
+[ext_resource type="Texture2D" uid="uid://a28k36pqgoan" path="res://assets/sprites/players/p1/Punch02/Punch0203.png" id="p23"]
+[ext_resource type="Texture2D" uid="uid://bw17lfnornrc" path="res://assets/sprites/players/p1/Punch02/Punch0204.png" id="p24"]
+[ext_resource type="Texture2D" uid="uid://099iec5jkjr9" path="res://assets/sprites/players/p1/Punch03/Punch0301.png" id="p31"]
+[ext_resource type="Texture2D" uid="uid://ocohu69c2a89" path="res://assets/sprites/players/p1/Punch03/Punch0302.png" id="p32"]
+[ext_resource type="Texture2D" uid="uid://xjnx43iqx255" path="res://assets/sprites/players/p1/Punch03/Punch0303.png" id="p33"]
+[ext_resource type="Texture2D" uid="uid://gpjakzig2to6" path="res://assets/sprites/players/p1/Punch03/Punch0304.png" id="p34"]
+[ext_resource type="Texture2D" uid="uid://kjrdn2nsurgm" path="res://assets/sprites/players/p1/Punch03/Punch0305.png" id="p35"]
+[ext_resource type="Texture2D" uid="uid://4jivk4lbx8sb" path="res://assets/sprites/players/p1/Punch03/Punch0306.png" id="p36"]
+[ext_resource type="Texture2D" uid="uid://jcqvr3rde0lg" path="res://assets/sprites/players/p1/Punch03/Punch0307.png" id="p37"]
 [ext_resource type="Texture2D" uid="uid://dnhtjamgm6ywk" path="res://assets/sprites/players/p1/Idle/Idle01.png" id="i1"]
 [ext_resource type="Texture2D" uid="uid://b3kj6lg1tq1oe" path="res://assets/sprites/players/p1/Idle/Idle02.png" id="i2"]
 [ext_resource type="Texture2D" uid="uid://wifrwkp00sia" path="res://assets/sprites/players/p1/Idle/Idle03.png" id="i3"]
@@ -722,6 +733,49 @@ animations = [{
 "loop": false,
 "name": &"Punch01",
 "speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("p21")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p22")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p23")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p24")
+}],
+"loop": false,
+"name": &"Punch02",
+"speed": 14.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("p31")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p32")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p33")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p34")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p35")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p36")
+}, {
+"duration": 1.0,
+"texture": ExtResource("p37")
+}],
+"loop": false,
+"name": &"Punch03",
+"speed": 14.0
 }, {
 "frames": [{
 "duration": 1.0,

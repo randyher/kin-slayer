@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://4y8dox32amkr"]
+
+[ext_resource type="Script" uid="uid://y193jsxee946" path="res://scripts/ui/ActionCommand.gd" id="1_acmd"]
+
+[node name="ActionCommand" type="Node2D"]
+script = ExtResource("1_acmd")
+visible = false
+
+[node name="ButtonIcon" type="TextureRect" parent="."]
+offset_left = -9.0
+offset_top = -9.0
+offset_right = 9.0
+offset_bottom = 9.0
+stretch_mode = 0
+
+[node name="RingContainer" type="Node2D" parent="."]
+
+[node name="ResultLabel" type="Label" parent="."]
+offset_left = -40.0
+offset_top = 28.0
+offset_right = 40.0
+offset_bottom = 44.0
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 10

@@ -98,13 +98,19 @@ func _track_players() -> void:
 	if players.is_empty():
 		return
 
-	# --- Calculate midpoint between all players ---
-	# Works for 1-player (just centres on the single player) and
-	# 2-player (centres between both).
+	# Exclude any player currently leaving the room — the camera should only
+	# follow whoever is still inside. arrive_in_room() resets state to IDLE,
+	# so tracking automatically widens back to both players on the next room.
+	var tracked : Array = players.filter(func(p: Node) -> bool:
+		return not (p is Player and (p as Player).state == Player.State.EXITING))
+	if tracked.is_empty():
+		tracked = players   # both exiting simultaneously — fall back to everyone
+
+	# --- Calculate midpoint between tracked players ---
 	var mid := Vector2.ZERO
-	for p : Node2D in players:
+	for p : Node2D in tracked:
 		mid += p.global_position
-	mid /= float(players.size())
+	mid /= float(tracked.size())
 
 	# --- Clamp to room bounds so the camera never pans outside ---
 	var room := RoomManager.current_room as Room

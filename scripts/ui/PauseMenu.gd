@@ -9,7 +9,7 @@
 ##   Escape          → toggle pause
 ##   p1_up / p2_up   → highlight Return
 ##   p1_down / p2_down → highlight Debug Mode
-##   p1_jump / p2_jump → confirm highlighted item
+##   p1_cross / p2_cross → confirm highlighted item
 
 extends CanvasLayer
 
@@ -78,7 +78,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 	# ---- Confirm with jump ----
-	elif (event.is_action_pressed("p1_jump") or event.is_action_pressed("p2_jump")) \
+	elif (event.is_action_pressed("p1_cross") or event.is_action_pressed("p2_cross")) \
 			and not event.is_echo():
 		_confirm()
 		get_viewport().set_input_as_handled()

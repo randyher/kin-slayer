@@ -136,14 +136,14 @@ func _check_input() -> void:
 	var pid: int = _active_player.player_id
 
 	# ✕ cross   → Attack  (jump button)
-	if Input.is_action_just_pressed("p%d_jump" % pid):
+	if Input.is_action_just_pressed("p%d_cross" % pid):
 		_on_button_pressed("cross", "attack")
-	# □ square  → Guard   (dash button)
-	elif Input.is_action_just_pressed("p%d_dash" % pid) and guard_enabled:
-		_on_button_pressed("square", "guard")
-	# ○ circle  → Swap    (grip button)
-	elif Input.is_action_just_pressed("p%d_grip" % pid):
+	# ○ circle  → Swap
+	elif Input.is_action_just_pressed("p%d_circle" % pid):
 		_on_button_pressed("circle", "swap")
+	# R1       → Guard
+	elif Input.is_action_just_pressed("p%d_r1" % pid) and guard_enabled:
+		_on_button_pressed("square", "guard")
 	# △ triangle → Item   (up button — no p_pause exists for P2 in all configs)
 	elif Input.is_action_just_pressed("p%d_up" % pid) and item_enabled:
 		_on_button_pressed("triangle", "item")

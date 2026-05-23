@@ -30,7 +30,7 @@ extends Node2D
 ## Success fires when circle_radius is between button_radius and
 ## button_radius + sweet_spot_width.
 ## Larger = more forgiving.
-@export_range(0.0, 20.0, 0.5, "suffix:px") var sweet_spot_width: float = 10.0
+@export_range(0.0, 20.0, 0.1, "suffix:px") var sweet_spot_width: float = 7.0
 
 @export_group("Damage")
 ## Damage dealt by the first hit — always lands, no timing required.
@@ -51,6 +51,12 @@ extends Node2D
 @export_range(1.0, 8.0, 0.5, "suffix:px") var ring_thickness: float = 3.0
 ## How long the gold/red flash lasts before emitting the result signal.
 @export_range(0.0, 1.0, 0.05, "suffix:s") var result_flash_duration: float = 0.25
+## Radius of the static outer target ring drawn around the button icon.
+## The shrinking circle aims to land inside this ring — increase to widen the
+## gap between the icon and the target boundary.
+@export_range(0.0, 120.0, 0.5, "suffix:px") var outer_ring_radius: float = 22.0
+## Color of the static outer target ring.
+@export var outer_ring_color: Color = Color(1.0, 1.0, 1.0, 0.35)
 
 # ---------------------------------------------------------------------------
 # SIGNALS
@@ -144,13 +150,14 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 	# Check for player input — jump button maps to the ✕ action.
-	var jump_action: String = "p%d_jump" % _player_id
+	var jump_action: String = "p%d_cross" % _player_id
 	if Input.is_action_just_pressed(jump_action):
 		_check_timing()
 		return
 
-	# Auto-miss if the circle passes well inside the button without a press.
-	if _current_radius < button_radius - sweet_spot_width:
+	# Auto-miss once the shrinking circle passes well inside the outer ring.
+	# outer_ring_radius is the source of truth — button_radius is unused.
+	if _current_radius < outer_ring_radius - sweet_spot_width:
 		_on_miss()
 
 # ---------------------------------------------------------------------------
@@ -158,11 +165,11 @@ func _process(delta: float) -> void:
 # ---------------------------------------------------------------------------
 
 func _check_timing() -> void:
-	# Success zone: circle radius is between button_radius and
-	# button_radius + sweet_spot_width when the player presses.
+	# outer_ring_radius is the single source of truth for timing detection.
+	# Success fires when the shrinking circle is within sweet_spot_width of
+	# the outer ring — so pressing as the circle reaches the visual ring works.
 	# FUTURE — perfect timing inner zone: tighter window for extra damage bonus.
-	if _current_radius >= button_radius and \
-			_current_radius <= button_radius + sweet_spot_width:
+	if abs(_current_radius - outer_ring_radius) <= sweet_spot_width:
 		_on_success()
 	else:
 		_on_miss()
@@ -224,14 +231,14 @@ func _on_miss() -> void:
 # ---------------------------------------------------------------------------
 
 func _draw() -> void:
-	if (not _is_active and not _result_shown) or _current_radius <= 0.0:
+	if not _is_active and not _result_shown:
 		return
-	# Draw the shrinking ring centered on the node's origin.
-	# The ✕ button icon is also centered here, so the ring closes toward it.
-	draw_arc(
-		Vector2.ZERO,
-		_current_radius,
-		0.0, TAU, 64,
-		_current_color,
-		ring_thickness,
-		true)
+	# Static outer target ring — fixed boundary the shrinking circle aims for.
+	# Tune outer_ring_radius in the Inspector to set how far from the icon edge
+	# the target sits; the gap between icon and this ring is the timing zone.
+	draw_arc(Vector2.ZERO, outer_ring_radius, 0.0, TAU, 64,
+		outer_ring_color, ring_thickness, true)
+	# Shrinking ring — closes inward toward the outer ring.
+	if _current_radius > 0.0:
+		draw_arc(Vector2.ZERO, _current_radius, 0.0, TAU, 64,
+			_current_color, ring_thickness, true)

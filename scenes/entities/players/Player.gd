@@ -633,7 +633,7 @@ var _jump_pressed: bool = false
 var _jump_held: bool = false
 var _dash_pressed: bool = false
 var _down_held: bool = false
-## Grip button — universal "maintain contact" action (p1_grip / p2_grip).
+## Grip button — universal "maintain contact" action (p1_r1 / p2_r1).
 ## Used for wall climbing, ledge hanging, background holds, and future interactions.
 var _grip_held: bool = false
 ## True only on the frame grip is first pressed — used by PRESS_THEN_OVERLAP mode.
@@ -665,23 +665,23 @@ func _get_input() -> Vector2:
 	if player_id == 1:
 		if Input.is_action_pressed("p1_right"):      dir.x += 1
 		if Input.is_action_pressed("p1_left"):       dir.x -= 1
-		_jump_pressed = Input.is_action_just_pressed("p1_jump")
-		_jump_held    = Input.is_action_pressed("p1_jump")
-		_dash_pressed = Input.is_action_just_pressed("p1_dash")
+		_jump_pressed = Input.is_action_just_pressed("p1_cross")
+		_jump_held    = Input.is_action_pressed("p1_cross")
+		_dash_pressed = Input.is_action_just_pressed("p1_circle")
 		_down_held    = Input.is_action_pressed("p1_down")
-		_grip_held         = Input.is_action_pressed("p1_grip")
-		_grip_just_pressed = Input.is_action_just_pressed("p1_grip")
+		_grip_held         = Input.is_action_pressed("p1_r1")
+		_grip_just_pressed = Input.is_action_just_pressed("p1_r1")
 		_up_pressed        = Input.is_action_just_pressed("p1_up")
 		_up_held           = Input.is_action_pressed("p1_up")
 	else:
 		if Input.is_action_pressed("p2_right"):      dir.x += 1
 		if Input.is_action_pressed("p2_left"):       dir.x -= 1
-		_jump_pressed      = Input.is_action_just_pressed("p2_jump")
-		_jump_held         = Input.is_action_pressed("p2_jump")
-		_dash_pressed      = Input.is_action_just_pressed("p2_dash")
+		_jump_pressed      = Input.is_action_just_pressed("p2_cross")
+		_jump_held         = Input.is_action_pressed("p2_cross")
+		_dash_pressed      = Input.is_action_just_pressed("p2_circle")
 		_down_held         = Input.is_action_pressed("p2_down")
-		_grip_held         = Input.is_action_pressed("p2_grip")
-		_grip_just_pressed = Input.is_action_just_pressed("p2_grip")
+		_grip_held         = Input.is_action_pressed("p2_r1")
+		_grip_just_pressed = Input.is_action_just_pressed("p2_r1")
 		_up_pressed        = Input.is_action_just_pressed("p2_up")
 		_up_held           = Input.is_action_pressed("p2_up")
 

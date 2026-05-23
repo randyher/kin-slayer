@@ -17,7 +17,7 @@ extends Node
 ## The room the game boots into. Change this in the Inspector on the
 ## RoomManager autoload node (Project → Project Settings → Autoload → RoomManager)
 ## to start testing in a different room without touching code.
-@export var starting_room : PackedScene = preload("res://scenes/world/Level01_Room02.tscn")
+@export var starting_room : PackedScene = preload("res://scenes/world/Level01_Room01.tscn")
 
 # ---------------------------------------------------------------------------
 # SIGNALS

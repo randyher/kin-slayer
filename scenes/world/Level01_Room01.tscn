@@ -1319,7 +1319,6 @@ tile_map_data = PackedByteArray("AADY/wcAAAAaAAQAAFDY/wgAAAAaAAQAAFDY/wkAAAAaAAQ
 tile_set = SubResource("TileSet_mc")
 
 [node name="Background" type="TileMapLayer" parent="." index="12" unique_id=2077832038]
-visible = false
 z_index = -15
 position = Vector2(-59, -5)
 scale = Vector2(2, 2)

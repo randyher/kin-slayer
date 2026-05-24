@@ -26,10 +26,17 @@ extends CharacterBody2D
 ## FUTURE — multiple receive points for different attack types (aerial, sweep, etc.).
 @export var attack_receive_offset: Vector2 = Vector2(-40.0, 0.0)
 
+enum TargetingMode {
+	LOWEST_HP,  ## Attack whichever living player has the least HP. Ties resolved randomly.
+	CLOSEST,    ## Attack whichever living player is physically closest to this enemy.
+}
+
 @export_group("Battle")
 ## Pause between landing Punch01 and turning away to dash back.
 ## Mirrors player's same export. Tune per enemy type for different feel.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var attack_pause_duration: float = 0.2
+## Determines which player this enemy prioritises when choosing a target.
+@export var targeting_mode: TargetingMode = TargetingMode.LOWEST_HP
 
 @export_group("Combat")
 @export var hitbox_offset: Vector2 = Vector2(18, -5)
@@ -128,8 +135,7 @@ func set_combat_room(room: Node) -> void:
 # TARGET SELECTION
 # ---------------------------------------------------------------------------
 
-## Choose which player to attack based on current HP.
-## Lowest HP player is targeted. Ties are resolved randomly.
+## Choose which player to attack based on targeting_mode.
 ## This lives on Enemy.gd (not BattleManager) so different enemy types
 ## can have different targeting logic without touching the manager.
 func select_target(player_list: Array) -> Node2D:
@@ -144,27 +150,39 @@ func select_target(player_list: Array) -> Node2D:
 	if active.size() == 1:
 		return active[0] as Node2D
 
-	# Target the living player with the lowest HP. Ties are resolved randomly.
-	var lowest_hp: float = INF
-	var candidates: Array = []
+	match targeting_mode:
+		TargetingMode.CLOSEST:
+			# Target whichever living player is physically nearest to this enemy.
+			var closest: Node2D = null
+			var closest_dist: float = INF
+			for player in active:
+				var p := player as Node2D
+				if p == null:
+					continue
+				var d := global_position.distance_squared_to(p.global_position)
+				if d < closest_dist:
+					closest_dist = d
+					closest = p
+			return closest
 
-	for player in active:
-		var p := player as Player
-		if p == null:
-			continue
-		if p.current_hp < lowest_hp:
-			lowest_hp  = p.current_hp
-			candidates = [p]
-		elif p.current_hp == lowest_hp:
-			candidates.append(p)
-
-	# FUTURE — targeting priority system:
-	# front position player targeted first
-	# status effects (poison, stun) influence targeting
-	# boss may have scripted targets for story moments
-
-	candidates.shuffle()
-	return candidates[0] as Node2D
+		_:  # TargetingMode.LOWEST_HP (default)
+			# Target the living player with the lowest HP. Ties resolved randomly.
+			# FUTURE — targeting priority system:
+			# status effects (poison, stun) influence targeting
+			# boss may have scripted targets for story moments
+			var lowest_hp: float = INF
+			var candidates: Array = []
+			for player in active:
+				var p := player as Player
+				if p == null:
+					continue
+				if p.current_hp < lowest_hp:
+					lowest_hp  = p.current_hp
+					candidates = [p]
+				elif p.current_hp == lowest_hp:
+					candidates.append(p)
+			candidates.shuffle()
+			return candidates[0] as Node2D
 
 # ---------------------------------------------------------------------------
 # ATTACK SEQUENCE — mirrors player attack choreography exactly

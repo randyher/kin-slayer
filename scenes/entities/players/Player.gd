@@ -1717,6 +1717,12 @@ func _on_animation_finished() -> void:
 func start_exit(direction: Vector2) -> void:
 	if _is_exiting:
 		return
+	# Ignore exit triggers during the post-room-load grace period. arrive_in_room()
+	# sets _invincible_timer = 0.5; any body_entered signal that fires before the
+	# physics engine settles on the new spawn position would otherwise re-trigger
+	# the exit immediately and send the player flying through the next room.
+	if _invincible_timer > 0.0:
+		return
 	_is_exiting = true
 	_exit_direction = direction
 	# Set facing before _set_state so the animation case sees it.

@@ -33,6 +33,10 @@ enum TransitionStyle {
 ## 0.4 s feels snappy; raise it for a slower cinematic feel.
 @export var transition_duration : float = 0.4
 
+## How quickly the camera catches up to its target position each second.
+## Higher = snappier; lower = floatier. 8 is a good starting point.
+@export_range(1.0, 30.0, 0.5) var follow_speed: float = 8.0
+
 ## These are set automatically by _on_room_loaded() whenever the room changes.
 ## You do NOT need to set them manually — they mirror the current Room's exports.
 @export var next_room        : PackedScene   ## right exit
@@ -82,18 +86,20 @@ func _ready() -> void:
 # PHYSICS PROCESS  —  player tracking
 # ---------------------------------------------------------------------------
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	# Do not move the camera while the screen is fading — snapping after the
 	# fade is handled explicitly inside _transition_to().
 	if _transitioning:
 		return
-	_track_players()
+	_track_players(delta)
 
 # ---------------------------------------------------------------------------
 # PLAYER TRACKING
 # ---------------------------------------------------------------------------
 
-func _track_players() -> void:
+## delta > 0  → smooth lerp (normal per-frame tracking).
+## delta = 0  → instant snap (called after a room load while screen is black).
+func _track_players(delta: float = 0.0) -> void:
 	var players : Array = get_tree().get_nodes_in_group("players")
 	if players.is_empty():
 		return
@@ -129,7 +135,10 @@ func _track_players() -> void:
 		else:
 			mid.y = bounds.get_center().y
 
-	global_position = mid
+	if delta > 0.0:
+		global_position = global_position.lerp(mid, follow_speed * delta)
+	else:
+		global_position = mid
 
 # ---------------------------------------------------------------------------
 # ROOM SIGNAL WIRING

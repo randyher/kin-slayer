@@ -210,7 +210,10 @@ func _spawn_players(spawn_side: String) -> void:
 		_:        marker = room.spawn_p1   # "right", "none", or anything else
 
 	if marker == null:
-		push_warning("RoomManager: spawn marker not found in room — players not repositioned.")
+		push_warning("RoomManager: directional spawn marker for '%s' not found — falling back to PlayerOneSpawn." % spawn_side)
+		marker = room.spawn_p1
+	if marker == null:
+		push_warning("RoomManager: PlayerOneSpawn not found — players not repositioned.")
 		return
 
 	var player := players[0] as Node2D

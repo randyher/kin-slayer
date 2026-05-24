@@ -33,8 +33,8 @@ extends Node2D
 @onready var exit_bottom  : Area2D   = $ExitBottom
 @onready var spawn_p1 : Marker2D = $PlayerOneSpawn
 @onready var spawn_p2 : Marker2D = $PlayerTwoSpawn
-@onready var spawn_p3 : Marker2D = $PlayerThreeSpawn
-@onready var spawn_p4 : Marker2D = $PlayerFourSpawn
+@onready var spawn_p3 : Marker2D = get_node_or_null("PlayerThreeSpawn") as Marker2D
+@onready var spawn_p4 : Marker2D = get_node_or_null("PlayerFourSpawn") as Marker2D
 
 # ---------------------------------------------------------------------------
 # READY

@@ -53,6 +53,12 @@ func _ready() -> void:
 	_p1_stamina_bar.modulate.a = 0.0   # TEMP
 	_p2_stamina_bar.modulate.a = 0.0   # TEMP
 
+	# In single player mode, hide all P2 HUD elements immediately.
+	# FUTURE — center P1 HUD elements when P2 HUD is hidden.
+	if GameManager.is_single_player():
+		_p2_hearts.visible      = false
+		_p2_stamina_bar.visible = false
+
 	# Wait one frame so every Player node has had its own _ready() called and
 	# has added itself to the "players" group.  Without this yield the group
 	# may still be empty when we search it.

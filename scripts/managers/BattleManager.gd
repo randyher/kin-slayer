@@ -72,6 +72,8 @@ func _ready() -> void:
 # ---------------------------------------------------------------------------
 
 ## Lock all players, pass room reference to enemies, and start the walk-in intro.
+## players array is built from get_nodes_in_group("players") in CombatRoom —
+## single player mode works automatically because P2 is not in the group.
 func start_battle(player_list: Array, enemy_list: Array) -> void:
 	players = player_list
 	enemies = enemy_list
@@ -118,7 +120,8 @@ func _build_turn_order() -> void:
 	_turn_order.clear()
 	_current_turn_index = 0
 
-	# Players always act before enemies for now.
+	# Only players in the "players" group participate — single player = only P1 here.
+	# P2 not in group = not in battle = not in turn order. No special casing needed.
 	# FUTURE — sort by speed stat when weapons and items that affect initiative exist.
 	# FUTURE — randomise ties when speed stats differ, boss speed increases at low HP.
 	for player in players:
@@ -332,6 +335,9 @@ func player_downed(player: Node) -> void:
 	await get_tree().create_timer(0.5).timeout
 	_start_next_turn()
 
+## Battle system reads player count dynamically from the "players" group via
+## the players array built at start_battle(). Single player mode is transparent —
+## P1 downed = active_players empty = defeat. No special casing needed.
 func _do_defeat_sequence() -> void:
 	current_phase = BattlePhase.DEFEAT
 	await get_tree().create_timer(1.0).timeout

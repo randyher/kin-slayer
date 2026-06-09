@@ -382,6 +382,23 @@ var _invincible_timer: float = 0.0
 # READY
 # ---------------------------------------------------------------------------
 func _ready() -> void:
+	# If this is Player 2 and single player mode is on, disable entirely.
+	# P2 removes itself from "players" so all other systems work automatically
+	# without any special-casing — they just see one fewer player in the group.
+	# FUTURE — ghost/AI mode for P2: instead of disabling entirely,
+	#   P2 could be AI controlled in single player mode.
+	if player_id == 2 and GameManager.is_single_player():
+		visible = false
+		set_physics_process(false)
+		set_process(false)
+		$CollisionShape2D.disabled = true
+		# Do not add to the players group — all group-based systems will
+		# ignore this node automatically. If already added, remove now.
+		remove_from_group("players")
+		# FUTURE — could spawn P2 mid game if a second player joins later:
+		#   re-enable visible, physics, collision, and add_to_group("players")
+		return
+
 	add_to_group("players")  # lets RoomManager, RoomCamera, and HUD find all players
 	modulate = player_color  # apply co-op tint to the entire node (sprite + children)
 	# Keep the player pressed against a downward-moving platform.

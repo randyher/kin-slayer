@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+GameManager="*uid://w5kl22gdrqcw"
 RoomManager="*uid://crbegojfvx8j5"
 BattleManager="*uid://da3hybhdigh05"
 

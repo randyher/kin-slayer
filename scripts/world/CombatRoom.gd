@@ -51,6 +51,9 @@ func _on_trigger_body_entered(body: Node2D) -> void:
 		return
 	_players_in_room.append(body)
 
+	# Player count read from "players" group dynamically — never hardcoded.
+	# Single player mode: P2 removed itself from the group in _ready(),
+	# so this fires as soon as P1 enters, with no changes needed here.
 	var all_players := get_tree().get_nodes_in_group("players")
 	if _players_in_room.size() >= all_players.size() and not _battle_started:
 		_start_battle_intro()

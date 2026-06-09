@@ -131,6 +131,9 @@ func player_entered_exit(player: Node, direction: String, next_room: PackedScene
 
 ## Called by Player when it has gone fully off screen.
 ## When every player has called this, fires all_players_exited.
+## Player count is always read from the "players" group dynamically —
+## never hardcoded. Single player mode just means P2 removes itself
+## from the group, so this check works with 1 or 2 players automatically.
 func player_finished_exit(player: Node) -> void:
 	if player in _players_exited:
 		return
@@ -167,57 +170,40 @@ func _spawn_players(spawn_side: String) -> void:
 	if current_room == null:
 		return
 
+	# Player count is always read from the "players" group dynamically.
+	# Never hardcode 2 players — single player mode means P2 is not in the group.
 	var players : Array = get_tree().get_nodes_in_group("players")
 	if players.is_empty():
 		return
 
-	# spawn_side = direction the players exited from the PREVIOUS room.
-	# They enter the new room from the opposite side, so:
-	#   "right"  → came from the right → appear at PlayerOneSpawn
-	#   "left"   → came from the left  → appear at PlayerTwoSpawn
-	#   "top"    → came from above     → appear at PlayerFourSpawn
-	#   "bottom" → came from below     → appear at PlayerThreeSpawn
-	#   "none"   → first load          → Player 1 at PlayerOneSpawn, Player 2 at PlayerTwoSpawn
+	# spawn_side is kept as a parameter for future use (e.g. directional intro
+	# animations) but spawn position is always P1→PlayerOneSpawn, P2→PlayerTwoSpawn.
 	var room := current_room as Room
 	if room == null:
 		return
 
-	# In 2-player co-op, always spread P1 to PlayerOneSpawn and P2 to PlayerTwoSpawn
-	# regardless of which direction they entered from. Room designers set
-	# PlayerOneSpawn and PlayerTwoSpawn over the safe landing platforms for this room.
-	# Directional markers (PlayerThreeSpawn, PlayerFourSpawn) are reserved for 1-player.
-	if players.size() >= 2:
-		var p1 := players[0] as Node2D
-		var p2 := players[1] as Node2D
-		if room.spawn_p1 != null:
-			if p1 is Player:
-				(p1 as Player).arrive_in_room(room.spawn_p1.global_position)
-			else:
-				p1.global_position = room.spawn_p1.global_position
-		if room.spawn_p2 != null:
-			if p2 is Player:
-				(p2 as Player).arrive_in_room(room.spawn_p2.global_position)
-			else:
-				p2.global_position = room.spawn_p2.global_position
-		return
-
-	# 1-player: use the directional marker matching the entry side.
-	var marker : Marker2D
-	match spawn_side:
-		"left":   marker = room.spawn_p2
-		"top":    marker = room.spawn_p4
-		"bottom": marker = room.spawn_p3
-		_:        marker = room.spawn_p1   # "right", "none", or anything else
-
-	if marker == null:
-		push_warning("RoomManager: directional spawn marker for '%s' not found — falling back to PlayerOneSpawn." % spawn_side)
-		marker = room.spawn_p1
-	if marker == null:
-		push_warning("RoomManager: PlayerOneSpawn not found — players not repositioned.")
-		return
-
-	var player := players[0] as Node2D
-	if player is Player:
-		(player as Player).arrive_in_room(marker.global_position)
-	else:
-		player.global_position = marker.global_position
+	# Always place P1 at PlayerOneSpawn and P2 at PlayerTwoSpawn, regardless of
+	# entry direction. Room designers position these over the safe landing platforms.
+	# This applies equally to 2-player and single-player (1 active player) mode.
+	#
+	# Why not use directional markers (PlayerThreeSpawn / PlayerFourSpawn) for
+	# single player? Those markers exist for a future dedicated 1-player layout.
+	# The current rooms are designed for 2-player co-op: P1/P2 spawns are already
+	# placed correctly for every entry direction. Using P3/P4 in single-player mode
+	# would break transitions into rooms where those markers are at (0,0) or missing.
+	var spawn_list := [room.spawn_p1, room.spawn_p2]
+	for i in players.size():
+		var player := players[i] as Node2D
+		if player == null:
+			continue
+		var marker : Marker2D = spawn_list[i] if i < spawn_list.size() else room.spawn_p1
+		if marker == null:
+			push_warning("RoomManager: spawn marker for player %d not found — falling back to PlayerOneSpawn." % (i + 1))
+			marker = room.spawn_p1
+		if marker == null:
+			push_warning("RoomManager: PlayerOneSpawn not found — player %d not repositioned." % (i + 1))
+			continue
+		if player is Player:
+			(player as Player).arrive_in_room(marker.global_position)
+		else:
+			player.global_position = marker.global_position

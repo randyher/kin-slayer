@@ -170,6 +170,15 @@ enum HoldGrabMode {
 ## Tune for dramatic effect — longer = more weight, shorter = snappier.
 @export_range(0.0, 2.0, 0.05, "suffix:s") var attack_pause_duration: float = 0.2
 
+@export_group("Room Entry")
+@export_range(0.0, 2.0, 0.1, "suffix:s") var entry_control_delay: float = 0.5
+@export_range(10.0, 600.0, 5.0, "suffix:px/s") var entry_rise_speed: float = 30.0
+## Speed of the north-entry "drag" tween from PlayerOneEmerge/TwoEmerge down to the
+## spawn marker. Distance varies per room, so duration scales with this speed
+## rather than being a fixed time.
+@export_range(10.0, 800.0, 5.0, "suffix:px/s") var entry_descend_speed: float = 30.0
+@export_range(0.0, 1.0, 0.05, "suffix:s") var p2_stagger_delay: float = 0.3
+
 @export_group("Combat")
 ## Position of HitBox relative to player center. Positive x = forward (right-facing).
 ## Tune in Inspector to align with fist extension in Punch01 animation.
@@ -376,6 +385,11 @@ var _exit_direction: Vector2 = Vector2.ZERO
 var _is_exiting: bool = false
 # While > 0, spikes cannot trigger respawn (grace period after room entry).
 var _invincible_timer: float = 0.0
+var _entry_direction: String = ""
+# Path2D traced in the editor for the current room-entry cutscene (if any).
+var _entry_path: Path2D = null
+# Global-space polyline sampled from _entry_path for the current entry.
+var _entry_path_points: Array[Vector2] = []
 
 
 # ---------------------------------------------------------------------------
@@ -1341,6 +1355,11 @@ func _start_dash(input_x: float) -> void:
 # Resets air abilities so they're available again next time the player jumps.
 # ---------------------------------------------------------------------------
 func _on_landed() -> void:
+	# Play the landing animation when arriving from a jump or fall.
+	# _set_state() skips re-triggering Idle/Run/Crouch/Crawl while it plays,
+	# and _on_animation_finished hands off to the right ground animation.
+	if state == State.JUMP or state == State.FALL:
+		_sprite.play("Land")
 	_air_dashes_used = 0
 	_has_double_jumped = false
 	_coyote_timer = 0.0
@@ -1623,11 +1642,14 @@ func _set_state(new_state: State) -> void:
 		_collision_duck.visible  = not _collision_duck.disabled
 		_collision_stand.queue_redraw()
 		_collision_duck.queue_redraw()
+	# Skip these while the one-shot Land animation is still playing —
+	# _on_animation_finished hands off to the right ground animation once it ends.
+	var landing := _sprite.animation == &"Land" and _sprite.is_playing()
 	match state:
-		State.IDLE:        _sprite.play("Idle")
-		State.RUN:         _sprite.play("Run")
-		State.DUCK:        _sprite.play("Crouch")
-		State.CRAWL:       _sprite.play("Crawl")
+		State.IDLE:        if not landing: _sprite.play("Idle")
+		State.RUN:         if not landing: _sprite.play("Run")
+		State.DUCK:        if not landing: _sprite.play("Crouch")
+		State.CRAWL:       if not landing: _sprite.play("Crawl")
 		State.JUMP:        _sprite.play("JumpRise")
 		State.FALL:        _sprite.play("JumpFall")
 		State.DASH:        _sprite.play("DashLoop")
@@ -1685,6 +1707,16 @@ func _on_animation_finished() -> void:
 	# the player somehow peaks and starts falling before the clip finishes).
 	elif _sprite.animation == &"WallJump":
 		_sprite.play("JumpFall" if velocity.y >= 0.0 else "JumpRise")
+
+	# ---- Land → Idle/Run/Crouch/Crawl ----
+	# The landing animation plays once; hand off to whatever ground animation
+	# matches the state _update_state() has already settled into.
+	elif _sprite.animation == &"Land":
+		match state:
+			State.RUN:   _sprite.play("Run")
+			State.DUCK:  _sprite.play("Crouch")
+			State.CRAWL: _sprite.play("Crawl")
+			_:           _sprite.play("Idle")
 
 	# ---- LedgeHang (entry) → LedgeHangIdle (loop) ----
 	# The grab animation plays once; afterwards the player idles on the ledge.
@@ -1801,6 +1833,155 @@ func arrive_in_room(spawn_position: Vector2) -> void:
 	_set_state(State.IDLE)
 	_invincible_timer = 0.5   # 0.5 s grace period so player can't land on a spike instantly
 	# FUTURE — could show a brief flash or shield indicator during invincibility.
+
+# Called by RoomManager on subsequent (non-first) room loads to play a
+# direction-specific entry animation before handing control back to the player.
+func start_room_entry(entry_direction: String, emerge_position: Vector2, spawn_position: Vector2, entry_path: Path2D = null) -> void:
+	_entry_direction = entry_direction
+	_entry_path = entry_path
+	_is_exiting = false
+	_exit_direction = Vector2.ZERO
+	velocity = Vector2.ZERO
+	_platform_velocity = Vector2.ZERO
+	global_position = emerge_position
+	_collision_stand.disabled = false
+	_collision_duck.disabled = true
+	set_physics_process(true)
+	_invincible_timer = 0.5
+	battle_locked = true
+	_battle_walk_direction = 0
+	# A drawn PlayerOneEntryPath/PlayerTwoEntryPath overrides the default
+	# direction-specific motion for ANY entry direction — it lets a room
+	# author trace the exact drop-in route (e.g. rise then settle onto a
+	# platform) regardless of which exit the player is arriving from.
+	var curve : Curve2D = _entry_path.curve if _entry_path != null else null
+	if curve != null and curve.get_baked_length() > 0.0:
+		_entry_along_path(curve, spawn_position)
+		return
+	match entry_direction:
+		"south":
+			_entry_from_south(spawn_position)
+		"north":
+			_entry_from_north(spawn_position)
+		"east":
+			_entry_from_east(spawn_position)
+		"west":
+			_entry_from_west(spawn_position)
+		_:
+			arrive_in_room(spawn_position)
+
+# Drags the player along a hand-drawn entry path (PlayerOneEntryPath /
+# PlayerTwoEntryPath) from the emerge marker to the spawn marker.
+# Duration scales with the path's length so the speed feels consistent
+# regardless of how long the route is in a given room.
+func _entry_along_path(curve: Curve2D, spawn_position: Vector2) -> void:
+	_facing_direction = 1
+	_sprite.flip_h = false
+	_battle_walk_direction = 0
+	_set_state(State.FALL)
+	set_physics_process(false)
+	velocity = Vector2.ZERO
+	# curve.get_baked_length() measures the curve in the Path2D node's LOCAL
+	# space, before its own position/scale is applied. Different rooms'
+	# entry-path nodes can have wildly different (and non-uniform) scales from
+	# editor authoring, so a local-space length doesn't correspond to a
+	# consistent on-screen distance. Bake the points and transform each to
+	# global space first, so entry_descend_speed always means global px/s.
+	_entry_path_points.clear()
+	for local_point in curve.get_baked_points():
+		_entry_path_points.append(_entry_path.to_global(local_point))
+	var total_length := 0.0
+	for i in range(1, _entry_path_points.size()):
+		total_length += _entry_path_points[i - 1].distance_to(_entry_path_points[i])
+	if total_length > 0.0:
+		var duration := total_length / entry_descend_speed
+		var tween := create_tween()
+		tween.tween_method(_sample_entry_path, 0.0, total_length, duration)
+		await tween.finished
+	# Snap to the exact spawn marker in case the drawn path doesn't end precisely on it.
+	global_position = spawn_position
+	set_physics_process(true)
+	_set_state(State.IDLE)
+	await get_tree().create_timer(entry_control_delay).timeout
+	_entry_direction = ""
+	if BattleManager.current_phase == BattleManager.BattlePhase.INACTIVE:
+		battle_locked = false
+
+func _entry_from_south(_spawn_position: Vector2) -> void:
+	_facing_direction = 1
+	_sprite.flip_h = false
+	velocity.y = -entry_rise_speed
+	_set_state(State.JUMP)
+	while not is_on_floor():
+		await get_tree().process_frame
+	_set_state(State.IDLE)
+	await get_tree().create_timer(entry_control_delay).timeout
+	_entry_direction = ""
+	if BattleManager.current_phase == BattleManager.BattlePhase.INACTIVE:
+		battle_locked = false
+
+func _entry_from_north(spawn_position: Vector2) -> void:
+	_facing_direction = 1
+	_sprite.flip_h = false
+	_battle_walk_direction = 0
+	_set_state(State.FALL)
+	# PlayerOneEmerge/TwoEmerge usually sit in open air with no platform below,
+	# so falling under gravity won't reliably land on the spawn marker. Instead,
+	# tween straight to the spawn position. (If a PlayerOneEntryPath/
+	# PlayerTwoEntryPath is drawn, _entry_along_path handles this instead.)
+	set_physics_process(false)
+	velocity = Vector2.ZERO
+	var distance := global_position.distance_to(spawn_position)
+	var duration := distance / entry_descend_speed
+	var tween := create_tween()
+	tween.tween_property(self, "global_position", spawn_position, duration)
+	await tween.finished
+	set_physics_process(true)
+	_set_state(State.IDLE)
+	await get_tree().create_timer(entry_control_delay).timeout
+	_entry_direction = ""
+	if BattleManager.current_phase == BattleManager.BattlePhase.INACTIVE:
+		battle_locked = false
+
+# Tween callback for _entry_along_path — walks _entry_path_points (a global-
+# space polyline) by the given distance and places the player there.
+func _sample_entry_path(distance: float) -> void:
+	var remaining := distance
+	for i in range(1, _entry_path_points.size()):
+		var seg_start : Vector2 = _entry_path_points[i - 1]
+		var seg_end : Vector2 = _entry_path_points[i]
+		var seg_len := seg_start.distance_to(seg_end)
+		if remaining <= seg_len or i == _entry_path_points.size() - 1:
+			var t := 0.0 if seg_len <= 0.0 else clampf(remaining / seg_len, 0.0, 1.0)
+			global_position = seg_start.lerp(seg_end, t)
+			return
+		remaining -= seg_len
+
+func _entry_from_east(spawn_position: Vector2) -> void:
+	_facing_direction = -1
+	_sprite.flip_h = true
+	_battle_walk_direction = -1
+	while global_position.x > spawn_position.x:
+		await get_tree().process_frame
+	_battle_walk_direction = 0
+	_set_state(State.IDLE)
+	await get_tree().create_timer(entry_control_delay).timeout
+	_entry_direction = ""
+	if BattleManager.current_phase == BattleManager.BattlePhase.INACTIVE:
+		battle_locked = false
+
+func _entry_from_west(spawn_position: Vector2) -> void:
+	_facing_direction = 1
+	_sprite.flip_h = false
+	_battle_walk_direction = 1
+	while global_position.x < spawn_position.x:
+		await get_tree().process_frame
+	_battle_walk_direction = 0
+	_set_state(State.IDLE)
+	await get_tree().create_timer(entry_control_delay).timeout
+	_entry_direction = ""
+	if BattleManager.current_phase == BattleManager.BattlePhase.INACTIVE:
+		battle_locked = false
 
 # ---------------------------------------------------------------------------
 # BATTLE CONTROL — called by BattleManager during the intro walk-in.

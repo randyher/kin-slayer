@@ -60,6 +60,9 @@ var _players_exited: Array = []
 var _exit_direction: String = ""
 var _exit_next_room: PackedScene = null
 
+# True until the first room has been loaded — skips the entry animation on boot.
+var _is_first_room_load: bool = true
+
 # ---------------------------------------------------------------------------
 # READY
 # ---------------------------------------------------------------------------
@@ -170,40 +173,66 @@ func _spawn_players(spawn_side: String) -> void:
 	if current_room == null:
 		return
 
-	# Player count is always read from the "players" group dynamically.
-	# Never hardcode 2 players — single player mode means P2 is not in the group.
 	var players : Array = get_tree().get_nodes_in_group("players")
 	if players.is_empty():
 		return
 
-	# spawn_side is kept as a parameter for future use (e.g. directional intro
-	# animations) but spawn position is always P1→PlayerOneSpawn, P2→PlayerTwoSpawn.
 	var room := current_room as Room
 	if room == null:
 		return
 
-	# Always place P1 at PlayerOneSpawn and P2 at PlayerTwoSpawn, regardless of
-	# entry direction. Room designers position these over the safe landing platforms.
-	# This applies equally to 2-player and single-player (1 active player) mode.
-	#
-	# Why not use directional markers (PlayerThreeSpawn / PlayerFourSpawn) for
-	# single player? Those markers exist for a future dedicated 1-player layout.
-	# The current rooms are designed for 2-player co-op: P1/P2 spawns are already
-	# placed correctly for every entry direction. Using P3/P4 in single-player mode
-	# would break transitions into rooms where those markers are at (0,0) or missing.
 	var spawn_list := [room.spawn_p1, room.spawn_p2]
+
+	if _is_first_room_load:
+		_is_first_room_load = false
+		for i in players.size():
+			var player := players[i] as Node2D
+			if player == null:
+				continue
+			var marker : Marker2D = spawn_list[i] if i < spawn_list.size() else room.spawn_p1
+			if marker == null:
+				push_warning("RoomManager: spawn marker for player %d not found — falling back to PlayerOneSpawn." % (i + 1))
+				marker = room.spawn_p1
+			if marker == null:
+				push_warning("RoomManager: PlayerOneSpawn not found — player %d not repositioned." % (i + 1))
+				continue
+			if player is Player:
+				(player as Player).arrive_in_room(marker.global_position)
+			else:
+				player.global_position = marker.global_position
+		return
+
+	# Subsequent room loads — play directional entry animation.
+	var entry_dir := _get_entry_direction(spawn_side)
+	# East/west entries are side-exit walk-ins — no emerge cutscene needed,
+	# just place the player at their spawn marker as before.
+	var use_emerge := entry_dir == "north" or entry_dir == "south"
 	for i in players.size():
-		var player := players[i] as Node2D
+		var player := players[i] as Player
 		if player == null:
 			continue
-		var marker : Marker2D = spawn_list[i] if i < spawn_list.size() else room.spawn_p1
-		if marker == null:
+		var spawn_marker : Marker2D = spawn_list[i] if i < spawn_list.size() else room.spawn_p1
+		if spawn_marker == null:
 			push_warning("RoomManager: spawn marker for player %d not found — falling back to PlayerOneSpawn." % (i + 1))
-			marker = room.spawn_p1
-		if marker == null:
+			spawn_marker = room.spawn_p1
+		if spawn_marker == null:
 			push_warning("RoomManager: PlayerOneSpawn not found — player %d not repositioned." % (i + 1))
 			continue
-		if player is Player:
-			(player as Player).arrive_in_room(marker.global_position)
-		else:
-			player.global_position = marker.global_position
+		if not use_emerge:
+			player.arrive_in_room(spawn_marker.global_position)
+			continue
+		var emerge_pos := room.get_emerge_position(i + 1)
+		var entry_path := room.get_entry_path(i + 1)
+		if i > 0:
+			# Stagger P2 and beyond so they don't all pop in at the same frame.
+			await get_tree().create_timer(player.p2_stagger_delay).timeout
+		# Fire-and-forget — each player animates independently.
+		player.start_room_entry(entry_dir, emerge_pos, spawn_marker.global_position, entry_path)
+
+func _get_entry_direction(exit_direction: String) -> String:
+	match exit_direction:
+		"top":    return "south"
+		"bottom": return "north"
+		"right":  return "west"
+		"left":   return "east"
+	return "south"

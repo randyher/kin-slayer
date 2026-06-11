@@ -27,7 +27,13 @@
       "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbIdle\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbIdle)",
       "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbLeft\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbLeft)",
       "Bash(cp -r \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/ClimbRight\" /Users/randyherasme/kin-slayer/assets/sprites/players/p1/ClimbRight)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/Combat/Punch02/\"*.png /Users/randyherasme/kin-slayer/assets/sprites/players/p1/Punch02/)",
+      "Bash(cp \"/Users/randyherasme/Desktop/Prototype Assests/Pixel Prototype Player/Sprites/Combat/Punch03/\"*.png /Users/randyherasme/kin-slayer/assets/sprites/players/p1/Punch03/)",
+      "Bash(xargs cat)",
+      "Bash(jobs)",
+      "Bash(awk '/node name=\"Player1\"/,/^\\\\[node/{print NR\": \"$0}' /Users/randyherasme/kin-slayer/scenes/world/Level01.tscn)",
+      "Bash(awk '/node name=\"Player[12]\"/,/^\\\\[node/{print NR\": \"$0}' /Users/randyherasme/kin-slayer/scenes/world/World.tscn)"
     ]
   }
 }

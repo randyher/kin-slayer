@@ -1,20 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://br7qroea0bmok"]
 
-; Base template for every room in the game.
-; To create a new room:
-;   1. Duplicate this file (right-click in the FileSystem dock → Duplicate)
-;   2. Open the duplicate, assign next_room / prev_room in the Inspector
-;   3. Resize the CollisionShape2D inside RoomBounds to match your room size
-;   4. Move ExitRight to the right edge and ExitLeft to the left edge
-;   5. Paint tiles on TileMapLayer
-
-[ext_resource type="Script" path="res://scenes/world/Room.gd" id="1_room"]
-
-; --- Collision shapes ---
-; RoomBounds: default 320 × 180 px room, top-left at world origin (0, 0).
-; Horizontal exits: 16 px wide strips at the left and right edges.
-; Vertical exits:   16 px tall strips at the top and bottom edges.
-; Adjust sizes and positions after duplicating this template.
+[ext_resource type="Script" uid="uid://bt3t6k2dq04c1" path="res://scenes/world/Room.gd" id="1_room"]
 
 [sub_resource type="RectangleShape2D" id="Shape_bounds"]
 size = Vector2(320, 180)
@@ -31,79 +17,77 @@ size = Vector2(320, 16)
 [sub_resource type="RectangleShape2D" id="Shape_exit_bottom"]
 size = Vector2(320, 16)
 
-; ---------------------------------------------------------------------------
-; NODE TREE
-; ---------------------------------------------------------------------------
+[sub_resource type="Curve2D" id="Curve2D_p1_entry"]
+_data = {
+"points": PackedVector2Array(0, 0, 0, 0, -35.601345, 166.72644, 0, 0, 0, 0, -32.187675, 140.95258, 0, 0, 0, 0, -21.946644, 154.45317)
+}
+point_count = 3
 
-[node name="Room" type="Node2D"]
+[sub_resource type="Curve2D" id="Curve2D_p2_entry"]
+
+[node name="Room" type="Node2D" unique_id=154620185]
 script = ExtResource("1_room")
 
-; TileMapLayer — paint your platforms here.
-; Assign a TileSet resource in the Inspector.
-[node name="TileMapLayer" type="TileMapLayer" parent="."]
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=1015528896]
 
-; RoomBounds — defines the camera lock area for this room.
-; Not a physics collider — monitoring and monitorable are both off.
-; Only used by Room.get_bounds_rect() to give the camera a clamping rect.
-[node name="RoomBounds" type="Area2D" parent="."]
+[node name="RoomBounds" type="Area2D" parent="." unique_id=1970737727]
 position = Vector2(160, 90)
-monitoring = false
-monitorable = false
 collision_layer = 0
 collision_mask = 0
+monitoring = false
+monitorable = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="RoomBounds"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RoomBounds" unique_id=2106402691]
 shape = SubResource("Shape_bounds")
 
-; ExitRight — players walk into this to trigger a transition to the right.
-; collision_mask = 1 so it detects CharacterBody2D nodes on physics layer 1.
-[node name="ExitRight" type="Area2D" parent="."]
+[node name="ExitRight" type="Area2D" parent="." unique_id=422682933]
 position = Vector2(312, 90)
 collision_layer = 0
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitRight" unique_id=232366127]
 shape = SubResource("Shape_exit_right")
 
-; ExitLeft — players walk into this to trigger a transition to the left.
-[node name="ExitLeft" type="Area2D" parent="."]
+[node name="ExitLeft" type="Area2D" parent="." unique_id=2100916936]
 position = Vector2(8, 90)
 collision_layer = 0
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitLeft" unique_id=1102048612]
 shape = SubResource("Shape_exit_left")
 
-; ExitTop — players jump through this to transition upward.
-[node name="ExitTop" type="Area2D" parent="."]
+[node name="ExitTop" type="Area2D" parent="." unique_id=742336905]
 position = Vector2(160, 8)
 collision_layer = 0
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitTop" unique_id=524594845]
 shape = SubResource("Shape_exit_top")
 
-; ExitBottom — players fall through this to transition downward.
-[node name="ExitBottom" type="Area2D" parent="."]
+[node name="ExitBottom" type="Area2D" parent="." unique_id=1867760992]
 position = Vector2(160, 172)
 collision_layer = 0
-collision_mask = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitBottom" unique_id=679485304]
 shape = SubResource("Shape_exit_bottom")
 
-; PlayerOneSpawn — where Player 1 appears on room entry.
-[node name="PlayerOneSpawn" type="Marker2D" parent="."]
+[node name="PlayerOneSpawn" type="Marker2D" parent="." unique_id=20090689]
 position = Vector2(32, 140)
 
-; PlayerTwoSpawn — where Player 2 appears on room entry.
-[node name="PlayerTwoSpawn" type="Marker2D" parent="."]
+[node name="PlayerTwoSpawn" type="Marker2D" parent="." unique_id=1498088914]
 position = Vector2(288, 140)
 
-; PlayerThreeSpawn — reserved for a future 3rd player.
-[node name="PlayerThreeSpawn" type="Marker2D" parent="."]
+[node name="PlayerThreeSpawn" type="Marker2D" parent="." unique_id=1694015630]
 position = Vector2(160, 32)
 
-; PlayerFourSpawn — reserved for a future 4th player.
-[node name="PlayerFourSpawn" type="Marker2D" parent="."]
+[node name="PlayerFourSpawn" type="Marker2D" parent="." unique_id=723229877]
 position = Vector2(160, 148)
+
+[node name="PlayerOneEmerge" type="Marker2D" parent="." unique_id=235338559]
+position = Vector2(32, 140)
+
+[node name="PlayerTwoEmerge" type="Marker2D" parent="." unique_id=1679164103]
+position = Vector2(72, 140)
+
+[node name="PlayerOneEntryPath" type="Path2D" parent="." unique_id=1621196253]
+curve = SubResource("Curve2D_p1_entry")
+
+[node name="PlayerTwoEntryPath" type="Path2D" parent="." unique_id=1486464130]
+curve = SubResource("Curve2D_p2_entry")

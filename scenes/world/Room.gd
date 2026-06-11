@@ -35,6 +35,10 @@ extends Node2D
 @onready var spawn_p2 : Marker2D = $PlayerTwoSpawn
 @onready var spawn_p3 : Marker2D = get_node_or_null("PlayerThreeSpawn") as Marker2D
 @onready var spawn_p4 : Marker2D = get_node_or_null("PlayerFourSpawn") as Marker2D
+@onready var emerge_p1 : Marker2D = get_node_or_null("PlayerOneEmerge") as Marker2D
+@onready var emerge_p2 : Marker2D = get_node_or_null("PlayerTwoEmerge") as Marker2D
+@onready var entry_path_p1 : Path2D = get_node_or_null("PlayerOneEntryPath") as Path2D
+@onready var entry_path_p2 : Path2D = get_node_or_null("PlayerTwoEntryPath") as Path2D
 
 # ---------------------------------------------------------------------------
 # READY
@@ -101,3 +105,19 @@ func get_bounds_rect() -> Rect2:
 	# The shape's centre in world space = Area2D position + shape offset.
 	var center : Vector2 = room_bounds.global_position + col.position
 	return Rect2(center - rect_shape.size * 0.5, rect_shape.size)
+
+## Returns the emerge position for the given player (1-based).
+## Falls back to the spawn marker, then room origin if neither is present.
+func get_emerge_position(player_id: int) -> Vector2:
+	var marker : Marker2D = emerge_p1 if player_id == 1 else emerge_p2
+	if marker == null:
+		marker = spawn_p1 if player_id == 1 else spawn_p2
+	if marker == null:
+		push_warning("Room: no emerge marker for player %d — using room origin." % player_id)
+		return global_position
+	return marker.global_position
+
+## Returns the Path2D that traces the entry-cutscene route for the given
+## player (1-based), or null if this room doesn't define one.
+func get_entry_path(player_id: int) -> Path2D:
+	return entry_path_p1 if player_id == 1 else entry_path_p2
